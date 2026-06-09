@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'core/constants/app_constants.dart';
+import 'features/home/presentation/pages/home_page.dart';
 
 class FlexFitApp extends StatelessWidget {
   const FlexFitApp({super.key});
@@ -8,14 +10,21 @@ class FlexFitApp extends StatelessWidget {
     return MaterialApp(
       title: 'FlexFit',
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('FlexFit'),
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: AppConstants.backgroundColor,
+        colorScheme: const ColorScheme.dark(
+          primary: AppConstants.primaryColor,
+          surface: AppConstants.surfaceColor,
         ),
-        body: const Center(
-          child: Text('FlexFit Mobile'),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppConstants.backgroundColor,
+          elevation: 0,
+          centerTitle: false,
         ),
       ),
+      home: const HomePage(),
     );
   }
 }
