@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../booking/presentation/pages/gym_detail_page.dart';
 import 'gym_card.dart';
 
 class FeaturedGymSection extends StatelessWidget {
@@ -80,6 +81,13 @@ class FeaturedGymSection extends StatelessWidget {
                 location: gym.location,
                 rating: gym.rating,
                 credits: gym.credits,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const GymDetailPage(),
+                    ),
+                  );
+                },
               );
             },
           ),
