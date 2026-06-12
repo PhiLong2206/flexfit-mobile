@@ -1,145 +1,111 @@
 import 'package:flutter/material.dart';
-// Import custom button có sẵn của dự án
-import '../../../../core/widgets/custom_button.dart';
+
+import '../widgets/booking_bottom_bar.dart';
+import '../widgets/booking_theme.dart';
+import '../widgets/gym_image_slider.dart';
+import '../widgets/gym_info_card.dart';
+import 'booking_confirmation_page.dart';
 
 class GymDetailPage extends StatelessWidget {
   const GymDetailPage({super.key});
 
+  static const String gymName = 'FlexFit Elite Gym';
+  static const String address = '12 Nguyễn Trãi, Quận 1, TP. Hồ Chí Minh';
+  static const double rating = 4.8;
+  static const int creditCost = 15;
+  static const String openingHours = '06:00 - 22:00';
+  static const String duration = '60 phút';
+  static const String description =
+      'Không gian tập luyện cao cấp với đầy đủ khu cardio, tạ tự do, máy tập hiện đại và đội ngũ huấn luyện viên luôn sẵn sàng hỗ trợ.';
+  static const List<String> amenities = [
+    'Máy lạnh',
+    'Tủ đồ',
+    'PT',
+    'Wifi',
+    'Phòng tắm',
+  ];
+  static const List<String> images = [
+    'https://images.unsplash.com/photo-1534438327276-14e5300c3a48',
+    'https://images.unsplash.com/photo-1571902943202-507ec2618e8f',
+    'https://images.unsplash.com/photo-1517836357463-d25dfeac3438',
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chi tiết phòng Gym'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. Slider hình ảnh phòng gym (Sử dụng PageView)
-            SizedBox(
-              height: 250,
-              child: PageView(
-                children: [
-                  Container(
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.image, size: 50, color: Colors.grey),
-                  ),
-                  Container(
-                    color: Colors.grey[400],
-                    child: const Icon(Icons.fitness_center, size: 50, color: Colors.grey),
-                  ),
-                ],
+      backgroundColor: BookingTheme.background,
+      bottomNavigationBar: BookingBottomBar(
+        creditCost: creditCost,
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const BookingConfirmationPage(
+                gymName: gymName,
+                address: address,
+                rating: rating,
+                creditCost: creditCost,
               ),
             ),
-
-            // 2. Thông tin chi tiết phòng tập
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: const Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'FlexFit Premium Club',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.location_on, color: Colors.red, size: 20),
-                          SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              '123 Đường ABC, Quận 1, TP. Hồ Chí Minh',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      Divider(),
-                      SizedBox(height: 8),
-                      Text(
-                        'Chi phí: 15 Credits / buổi',
-                        style: TextStyle(fontSize: 18, color: Colors.orange, fontWeight: FontWeight.bold),
-                      ),
-                    ],
+          );
+        },
+      ),
+      body: SafeArea(
+        top: false,
+        child: Stack(
+          children: [
+            CustomScrollView(
+              slivers: [
+                const SliverToBoxAdapter(child: GymImageSlider(images: images)),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                  sliver: SliverToBoxAdapter(
+                    child: GymInfoCard(
+                      name: gymName,
+                      address: address,
+                      rating: rating,
+                      creditCost: creditCost,
+                      openingHours: openingHours,
+                      duration: duration,
+                      description: description,
+                      amenities: amenities,
+                    ),
                   ),
                 ),
+              ],
+            ),
+            Positioned(
+              top: MediaQuery.paddingOf(context).top + 12,
+              left: 16,
+              child: _FloatingBackButton(
+                onPressed: () => Navigator.of(context).maybePop(),
               ),
             ),
           ],
-        ),
-      ),
-
-      // 3. Nút Đặt Lịch ngay dưới đáy màn hình
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size.fromHeight(50),
-            backgroundColor: Colors.blue,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-          onPressed: () => _showBookingConfirmation(context),
-          child: const Text('Đặt Lịch Ngay', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ),
       ),
     );
   }
+}
 
-  // 4. Dialog Xác nhận đặt lịch (Booking Confirmation)
-  void _showBookingConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false, // Bắt buộc bấm nút mới tắt được dialog
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
-            children: [
-              Icon(Icons.check_circle_outline, color: Colors.green),
-              SizedBox(width: 8),
-              Text('Xác Nhận Đặt Lịch'),
-            ],
-          ),
-          content: const Text(
-            'Bạn có chắc chắn muốn đặt lịch tại FlexFit Premium Club?\n\nHệ thống sẽ trừ 15 Credits trong tài khoản của bạn.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Hủy bỏ', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                Navigator.pop(context); // Đóng dialog
-                // Báo đặt thành công nhanh bằng SnackBar
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('🎉 Đặt lịch thành công!'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              },
-              child: const Text('Xác nhận'),
-            ),
-          ],
-        );
-      },
+class _FloatingBackButton extends StatelessWidget {
+  const _FloatingBackButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withAlpha(125),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withAlpha(30)),
+      ),
+      child: IconButton(
+        onPressed: onPressed,
+        icon: const Icon(Icons.arrow_back_rounded),
+        color: BookingTheme.text,
+        tooltip: 'Quay lại',
+      ),
     );
   }
 }

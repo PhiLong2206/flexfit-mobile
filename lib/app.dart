@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/constants/app_constants.dart';
-import 'features/home/presentation/pages/home_page.dart';
+import 'features/auth/presentation/pages/login_page.dart';
 
 class FlexFitApp extends StatelessWidget {
   const FlexFitApp({super.key});
@@ -24,7 +24,7 @@ class FlexFitApp extends StatelessWidget {
           centerTitle: false,
         ),
       ),
-      home: const HomePage(),
+      home: const LoginPage(),
     );
   }
 }
