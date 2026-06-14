@@ -6,6 +6,7 @@ import '../widgets/featured_gym_section.dart';
 import '../widgets/home_header.dart';
 import '../widgets/home_quick_stats_row.dart';
 import '../widgets/hero_banner.dart';
+import '../../../membership/presentation/membership_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -63,23 +64,41 @@ class _HomeBottomNavigationBar extends StatelessWidget {
             top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
           ),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            _BottomNavItem(
+            const _BottomNavItem(
               icon: Icons.home_rounded,
               label: 'Home',
               isActive: true,
             ),
-            _BottomNavItem(icon: Icons.explore_rounded, label: 'Explore'),
-            _BottomNavItem(
+            const _BottomNavItem(
+              icon: Icons.explore_rounded,
+              label: 'Explore',
+            ),
+            const _BottomNavItem(
               icon: Icons.calendar_month_rounded,
               label: 'Booking',
             ),
+
+            // Khi bấm vào Membership ở thanh navigation bên dưới,
+            // app sẽ chuyển từ HomePage sang MembershipScreen.
             _BottomNavItem(
               icon: Icons.workspace_premium_rounded,
               label: 'Membership',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const MembershipPage(),
+                  ),
+                );
+              },
             ),
-            _BottomNavItem(icon: Icons.person_rounded, label: 'Profile'),
+
+            const _BottomNavItem(
+              icon: Icons.person_rounded,
+              label: 'Profile',
+            ),
           ],
         ),
       ),
@@ -92,6 +111,7 @@ class _BottomNavItem extends StatelessWidget {
     required this.icon,
     required this.label,
     this.isActive = false,
+    this.onTap,
   });
 
   static const Color _primaryOrange = Color(0xFFFF6B16);
@@ -99,39 +119,44 @@ class _BottomNavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isActive;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final color = isActive ? _primaryOrange : Colors.white54;
 
     return Expanded(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            height: 32,
-            width: 44,
-            decoration: BoxDecoration(
-              color: isActive
-                  ? _primaryOrange.withValues(alpha: 0.14)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              height: 32,
+              width: 44,
+              decoration: BoxDecoration(
+                color: isActive
+                    ? _primaryOrange.withValues(alpha: 0.14)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Icon(icon, color: color, size: 22),
             ),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: color,
-              fontSize: 10,
-              fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
-              letterSpacing: 0,
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: color,
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                letterSpacing: 0,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
