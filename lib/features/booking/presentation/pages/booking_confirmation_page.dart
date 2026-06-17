@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/repositories/booking_repository.dart';
 import '../widgets/booking_bottom_bar.dart';
 import '../widgets/booking_summary_card.dart';
 import '../widgets/booking_theme.dart';
@@ -9,16 +10,18 @@ import '../../../home/presentation/pages/home_page.dart';
 class BookingConfirmationPage extends StatefulWidget {
   const BookingConfirmationPage({
     super.key,
-    this.gymName = 'FlexFit Elite Gym',
-    this.address = '12 Nguyễn Trãi, Quận 1, TP. Hồ Chí Minh',
-    this.rating = 4.8,
-    this.creditCost = 15,
+    this.gymName = 'Phòng gym FlexFit',
+    this.address = 'Chưa chọn chi nhánh',
+    this.rating = 0,
+    this.creditCost = 0,
+    this.branchId,
   });
 
   final String gymName;
   final String address;
   final double rating;
   final int creditCost;
+  final String? branchId;
 
   @override
   State<BookingConfirmationPage> createState() =>
@@ -26,7 +29,63 @@ class BookingConfirmationPage extends StatefulWidget {
 }
 
 class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
+  final _repository = BookingRepository();
   String _selectedTime = BookingTimeSelector.options.first;
+  bool _isLoading = false;
+
+  Future<void> _confirmBooking() async {
+    final branchId = widget.branchId;
+    if (branchId == null || branchId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Chưa thể đặt lịch phòng gym này vì hệ thống cần BranchId.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final startTime = _startTimeFor(_selectedTime);
+    final endTime = startTime.add(const Duration(hours: 1));
+    setState(() => _isLoading = true);
+    try {
+      await _repository.bookGym(
+        branchId: branchId,
+        sessionName: widget.gymName,
+        startTime: startTime,
+        endTime: endTime,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đặt lịch thành công.')));
+      Navigator.of(context).popUntil(
+        (route) => route.isFirst || route.settings.name == HomePage.routeName,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  DateTime _startTimeFor(String option) {
+    final now = DateTime.now();
+    final date = switch (option) {
+      'Ngày mai' => now.add(const Duration(days: 1)),
+      'Cuối tuần' => now.add(
+        Duration(days: (DateTime.saturday - now.weekday) % 7),
+      ),
+      _ => now,
+    };
+    return DateTime(date.year, date.month, date.day, 9);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,19 +94,8 @@ class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
       bottomNavigationBar: BookingBottomBar(
         creditCost: widget.creditCost,
         buttonText: 'Xác nhận đặt lịch',
-        onPressed: () async {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Đặt lịch thành công!')));
-          await Future<void>.delayed(const Duration(milliseconds: 600));
-          if (!context.mounted) {
-            return;
-          }
-          Navigator.of(context).popUntil(
-            (route) =>
-                route.isFirst || route.settings.name == HomePage.routeName,
-          );
-        },
+        isLoading: _isLoading,
+        onPressed: _confirmBooking,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -173,7 +221,7 @@ class _SelectedGymCard extends StatelessWidget {
               ),
               const SizedBox(width: 5),
               Text(
-                '$creditCost Credits',
+                '$creditCost Credit',
                 style: const TextStyle(
                   color: BookingTheme.text,
                   fontWeight: FontWeight.w800,

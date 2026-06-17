@@ -5,6 +5,7 @@ import '../widgets/auth_header.dart';
 import '../widgets/auth_social_button.dart';
 import '../widgets/auth_text_field.dart';
 import '../widgets/auth_theme.dart';
+import '../../data/repositories/auth_repository_impl.dart';
 import 'verify_otp_page.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -20,8 +21,10 @@ class _RegisterPageState extends State<RegisterPage> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _authRepository = AuthRepositoryImpl();
   bool _hidePassword = true;
   bool _hideConfirmPassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -121,14 +124,8 @@ class _RegisterPageState extends State<RegisterPage> {
               const SizedBox(height: 22),
               AuthButton(
                 label: 'Đăng ký',
-                onPressed: () {
-                  debugPrint('Register tapped: ${_emailController.text}');
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const VerifyOtpPage(),
-                    ),
-                  );
-                },
+                isLoading: _isLoading,
+                onPressed: _register,
               ),
               const SizedBox(height: 24),
               const _DividerText(text: 'Hoặc đăng ký bằng'),
@@ -163,6 +160,93 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _register() async {
+    if (_isLoading) return;
+
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+    final validationMessage = _validateRegister(
+      name: name,
+      email: email,
+      phone: phone,
+      password: password,
+      confirmPassword: confirmPassword,
+    );
+    if (validationMessage != null) {
+      _showSnackBar(validationMessage);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await _authRepository.register(
+        fullName: name,
+        email: email,
+        password: password,
+        phoneNumber: phone,
+      );
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => VerifyOtpPage(email: email)),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showSnackBar(_registerErrorMessage(error));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  String? _validateRegister({
+    required String name,
+    required String email,
+    required String phone,
+    required String password,
+    required String confirmPassword,
+  }) {
+    if (name.isEmpty) {
+      return 'Vui lòng nhập họ và tên';
+    }
+    if (email.isEmpty) {
+      return 'Vui lòng nhập email';
+    }
+    if (!email.contains('@')) {
+      return 'Email không hợp lệ';
+    }
+    if (phone.isEmpty) {
+      return 'Vui lòng nhập số điện thoại';
+    }
+    if (password.isEmpty) {
+      return 'Vui lòng nhập mật khẩu';
+    }
+    if (confirmPassword.isEmpty) {
+      return 'Vui lòng xác nhận mật khẩu';
+    }
+    if (password != confirmPassword) {
+      return 'Mật khẩu không khớp';
+    }
+    return null;
+  }
+
+  String _registerErrorMessage(Object error) {
+    final message = error.toString();
+    if (message.trim().isNotEmpty) {
+      return message;
+    }
+    return 'Đăng ký thất bại';
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

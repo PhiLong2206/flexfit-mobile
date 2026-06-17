@@ -1,40 +1,65 @@
 import 'package:flutter/material.dart';
 
-class HomeQuickStatsRow extends StatelessWidget {
+import '../../../membership/data/repositories/credit_repository.dart';
+
+class HomeQuickStatsRow extends StatefulWidget {
   const HomeQuickStatsRow({super.key});
 
-  static const List<_QuickStat> _stats = [
-    _QuickStat(
-      icon: Icons.bolt_rounded,
-      value: '960',
-      label: 'Credit hiện có',
-      hint: 'Gia hạn sau 12 ngày',
-    ),
-    _QuickStat(
-      icon: Icons.event_available_rounded,
-      value: '0',
-      label: 'Lịch sắp tới',
-      hint: 'Hôm nay',
-    ),
-    _QuickStat(
-      icon: Icons.workspace_premium_rounded,
-      value: 'Elite',
-      label: 'Thành viên',
-      hint: 'FlexFit Member',
-    ),
-  ];
+  @override
+  State<HomeQuickStatsRow> createState() => _HomeQuickStatsRowState();
+}
+
+class _HomeQuickStatsRowState extends State<HomeQuickStatsRow> {
+  final _creditRepository = CreditRepository();
+  late Future<int> _creditFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _creditFuture = _creditRepository.getMyCredit().then(
+      (credit) => credit.balance,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 104,
-      child: Row(
-        children: [
-          for (var index = 0; index < _stats.length; index++) ...[
-            Expanded(child: _QuickStatCard(stat: _stats[index])),
-            if (index != _stats.length - 1) const SizedBox(width: 10),
-          ],
-        ],
+      child: FutureBuilder<int>(
+        future: _creditFuture,
+        builder: (context, snapshot) {
+          final stats = [
+            _QuickStat(
+              icon: Icons.bolt_rounded,
+              value: snapshot.connectionState == ConnectionState.waiting
+                  ? '...'
+                  : '${snapshot.data ?? 0}',
+              label: 'Credit hiện có',
+              hint: snapshot.hasError ? 'Cần đăng nhập' : 'Số dư ví',
+            ),
+            const _QuickStat(
+              icon: Icons.event_available_rounded,
+              value: '0',
+              label: 'Lịch sắp tới',
+              hint: 'Hôm nay',
+            ),
+            const _QuickStat(
+              icon: Icons.workspace_premium_rounded,
+              value: 'Thành viên',
+              label: 'Hạng thành viên',
+              hint: 'FlexFit',
+            ),
+          ];
+
+          return Row(
+            children: [
+              for (var index = 0; index < stats.length; index++) ...[
+                Expanded(child: _QuickStatCard(stat: stats[index])),
+                if (index != stats.length - 1) const SizedBox(width: 10),
+              ],
+            ],
+          );
+        },
       ),
     );
   }
