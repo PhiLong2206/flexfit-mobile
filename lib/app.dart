@@ -1,15 +1,30 @@
 import 'package:flutter/material.dart';
-import 'screens/explore/explore_screen.dart';
+import 'core/constants/app_constants.dart';
+import 'features/gym/presentation/pages/explore_page.dart';
 
 class FlexFitApp extends StatelessWidget {
   const FlexFitApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       title: 'FlexFit',
       debugShowCheckedModeBanner: false,
-      home: ExploreScreen(),
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: AppConstants.backgroundColor,
+        colorScheme: const ColorScheme.dark(
+          primary: AppConstants.primaryColor,
+          surface: AppConstants.surfaceColor,
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppConstants.backgroundColor,
+          elevation: 0,
+          centerTitle: false,
+        ),
+      ),
+      home: const ExplorePage(),
     );
   }
 }
