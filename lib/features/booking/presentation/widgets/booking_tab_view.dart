@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../gym/presentation/pages/explore_page.dart';
-import '../../../profile/data/booking_notifier.dart';
 import '../../../profile/data/models/booking_item.dart';
+import '../providers/booking_provider.dart';
 import 'booking_card.dart';
 
 class BookingTabView extends StatefulWidget {
@@ -24,22 +24,22 @@ class _BookingTabViewState extends State<BookingTabView>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<BookingNotifier>().fetchBookings();
+      context.read<BookingProvider>().fetchBookings();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final bookingNotifier = context.watch<BookingNotifier>();
+    final bookingProvider = context.watch<BookingProvider>();
 
-    if (bookingNotifier.isLoading && bookingNotifier.bookings.isEmpty) {
+    if (bookingProvider.isLoading && bookingProvider.bookings.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
       );
     }
 
-    final filteredBookings = bookingNotifier.getBookingsByStatus(widget.status);
+    final filteredBookings = bookingProvider.getBookingsByStatus(widget.status);
 
     if (filteredBookings.isEmpty) {
       return Center(

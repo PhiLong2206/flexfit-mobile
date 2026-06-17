@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../notification/presentation/widgets/notification_bell_button.dart';
 import '../../data/models/member_profile_model.dart';
 import '../../data/repositories/profile_repository.dart';
 
@@ -102,6 +103,12 @@ class _ProfilePageState extends State<ProfilePage> {
       appBar: AppBar(
         title: const Text('Hồ sơ'),
         backgroundColor: _backgroundColor,
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: Center(child: NotificationBellButton()),
+          ),
+        ],
       ),
       body: SafeArea(
         child: FutureBuilder<MemberProfileModel>(

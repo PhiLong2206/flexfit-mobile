@@ -1,62 +1,91 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../../data/repositories/booking_repository.dart';
+import '../../../home/presentation/pages/home_page.dart';
+import '../providers/booking_provider.dart';
 import '../widgets/booking_bottom_bar.dart';
 import '../widgets/booking_summary_card.dart';
 import '../widgets/booking_theme.dart';
-import '../widgets/booking_time_selector.dart';
-import '../../../home/presentation/pages/home_page.dart';
 
-class BookingConfirmationPage extends StatefulWidget {
+class BookingConfirmationPage extends StatelessWidget {
   const BookingConfirmationPage({
     super.key,
     this.gymName = 'Phòng gym FlexFit',
     this.address = 'Chưa chọn chi nhánh',
+    required this.branchName,
     this.rating = 0,
     this.creditCost = 0,
-    this.branchId,
+    required this.branchId,
+    required this.startTime,
+    required this.endTime,
   });
 
   final String gymName;
   final String address;
+  final String branchName;
   final double rating;
   final int creditCost;
   final String? branchId;
+  final DateTime startTime;
+  final DateTime endTime;
 
   @override
-  State<BookingConfirmationPage> createState() =>
-      _BookingConfirmationPageState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => BookingProvider(),
+      child: _BookingConfirmationView(
+        gymName: gymName,
+        address: address,
+        branchName: branchName,
+        rating: rating,
+        creditCost: creditCost,
+        branchId: branchId,
+        startTime: startTime,
+        endTime: endTime,
+      ),
+    );
+  }
 }
 
-class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
-  final _repository = BookingRepository();
-  String _selectedTime = BookingTimeSelector.options.first;
-  bool _isLoading = false;
+class _BookingConfirmationView extends StatelessWidget {
+  const _BookingConfirmationView({
+    required this.gymName,
+    required this.address,
+    required this.branchName,
+    required this.rating,
+    required this.creditCost,
+    required this.branchId,
+    required this.startTime,
+    required this.endTime,
+  });
 
-  Future<void> _confirmBooking() async {
-    final branchId = widget.branchId;
-    if (branchId == null || branchId.isEmpty) {
+  final String gymName;
+  final String address;
+  final String branchName;
+  final double rating;
+  final int creditCost;
+  final String? branchId;
+  final DateTime startTime;
+  final DateTime endTime;
+
+  Future<void> _confirmBooking(BuildContext context) async {
+    final resolvedBranchId = branchId?.trim();
+    if (resolvedBranchId == null || resolvedBranchId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Chưa thể đặt lịch phòng gym này vì hệ thống cần BranchId.',
-          ),
+          content: Text('Không tìm thấy chi nhánh hợp lệ để đặt lịch.'),
         ),
       );
       return;
     }
-
-    final startTime = _startTimeFor(_selectedTime);
-    final endTime = startTime.add(const Duration(hours: 1));
-    setState(() => _isLoading = true);
     try {
-      await _repository.bookGym(
-        branchId: branchId,
-        sessionName: widget.gymName,
+      await context.read<BookingProvider>().createGymBooking(
+        branchId: resolvedBranchId,
+        sessionName: gymName,
         startTime: startTime,
         endTime: endTime,
       );
-      if (!mounted) return;
+      if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Đặt lịch thành công.')));
@@ -64,38 +93,25 @@ class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
         (route) => route.isFirst || route.settings.name == HomePage.routeName,
       );
     } catch (error) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(error.toString())));
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
     }
-  }
-
-  DateTime _startTimeFor(String option) {
-    final now = DateTime.now();
-    final date = switch (option) {
-      'Ngày mai' => now.add(const Duration(days: 1)),
-      'Cuối tuần' => now.add(
-        Duration(days: (DateTime.saturday - now.weekday) % 7),
-      ),
-      _ => now,
-    };
-    return DateTime(date.year, date.month, date.day, 9);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = context.watch<BookingProvider>().isLoading;
+    final hasValidBranchId = branchId != null && branchId!.trim().isNotEmpty;
+
     return Scaffold(
       backgroundColor: BookingTheme.background,
       bottomNavigationBar: BookingBottomBar(
-        creditCost: widget.creditCost,
+        creditCost: creditCost,
         buttonText: 'Xác nhận đặt lịch',
-        isLoading: _isLoading,
-        onPressed: _confirmBooking,
+        isLoading: isLoading,
+        onPressed: hasValidBranchId ? () => _confirmBooking(context) : null,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -121,18 +137,20 @@ class _BookingConfirmationPageState extends State<BookingConfirmationPage> {
               ),
               const SizedBox(height: 22),
               _SelectedGymCard(
-                gymName: widget.gymName,
-                address: widget.address,
-                rating: widget.rating,
-                creditCost: widget.creditCost,
+                gymName: gymName,
+                address: address,
+                branchName: branchName,
+                rating: rating,
+                creditCost: creditCost,
               ),
+              if (!hasValidBranchId) ...[
+                const SizedBox(height: 16),
+                const _BranchIdWarning(),
+              ],
               const SizedBox(height: 24),
-              BookingTimeSelector(
-                selectedTime: _selectedTime,
-                onSelected: (value) => setState(() => _selectedTime = value),
-              ),
+              _SelectedTimeCard(startTime: startTime, endTime: endTime),
               const SizedBox(height: 24),
-              BookingSummaryCard(creditCost: widget.creditCost),
+              BookingSummaryCard(creditCost: creditCost),
             ],
           ),
         ),
@@ -145,12 +163,14 @@ class _SelectedGymCard extends StatelessWidget {
   const _SelectedGymCard({
     required this.gymName,
     required this.address,
+    required this.branchName,
     required this.rating,
     required this.creditCost,
   });
 
   final String gymName;
   final String address;
+  final String branchName;
   final double rating;
   final int creditCost;
 
@@ -176,27 +196,9 @@ class _SelectedGymCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(
-                Icons.location_on_outlined,
-                color: BookingTheme.secondaryText,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  address,
-                  style: const TextStyle(
-                    color: BookingTheme.secondaryText,
-                    height: 1.35,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          _InfoLine(icon: Icons.apartment_rounded, text: branchName),
+          const SizedBox(height: 8),
+          _InfoLine(icon: Icons.location_on_outlined, text: address),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -231,6 +233,155 @@ class _SelectedGymCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SelectedTimeCard extends StatelessWidget {
+  const _SelectedTimeCard({required this.startTime, required this.endTime});
+
+  final DateTime startTime;
+  final DateTime endTime;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: BookingTheme.card,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: BookingTheme.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: BookingTheme.primary.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: BookingTheme.primary.withValues(alpha: 0.24),
+              ),
+            ),
+            child: const Icon(
+              Icons.schedule_rounded,
+              color: BookingTheme.primary,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Khung giờ đã chọn',
+                  style: TextStyle(
+                    color: BookingTheme.secondaryText,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _formatDate(startTime),
+                  style: const TextStyle(
+                    color: BookingTheme.text,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${_formatTime(startTime)} - ${_formatTime(endTime)}',
+                  style: const TextStyle(
+                    color: BookingTheme.primary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _formatDate(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    return '$day/$month/${value.year}';
+  }
+
+  static String _formatTime(DateTime value) {
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+}
+
+class _BranchIdWarning extends StatelessWidget {
+  const _BranchIdWarning();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF3B1F1F),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFEF4444).withValues(alpha: 0.4),
+        ),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded, color: Color(0xFFEF4444), size: 20),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Không tìm thấy chi nhánh hợp lệ cho phòng gym này. Vui lòng quay lại và chọn phòng gym khác.',
+              style: TextStyle(
+                color: BookingTheme.text,
+                fontWeight: FontWeight.w700,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoLine extends StatelessWidget {
+  const _InfoLine({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: BookingTheme.secondaryText, size: 18),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: BookingTheme.secondaryText,
+              height: 1.35,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

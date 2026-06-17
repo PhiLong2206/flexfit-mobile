@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/services/api_client.dart';
 import '../../data/models/credit_package_model.dart';
 import '../../data/repositories/credit_repository.dart';
+import '../../data/repositories/payment_repository.dart';
+import 'payment_history_page.dart';
 
 class MembershipPage extends StatefulWidget {
   const MembershipPage({super.key});
@@ -10,55 +15,113 @@ class MembershipPage extends StatefulWidget {
   State<MembershipPage> createState() => _MembershipPageState();
 }
 
-class _MembershipPageState extends State<MembershipPage> {
-  static const Color _backgroundColor = Color(0xFF070B14);
-  static const Color _cardColor = Color(0xFF111827);
-  static const Color _primaryOrange = Color(0xFFFF6B16);
+class _MembershipPageState extends State<MembershipPage>
+    with WidgetsBindingObserver {
+  static const Color _backgroundColor = AppConstants.backgroundColor;
+  static const Color _cardColor = AppConstants.surfaceColor;
+  static const Color _primaryOrange = AppConstants.primaryColor;
 
-  final _repository = CreditRepository();
+  final _creditRepository = CreditRepository();
+  final _paymentRepository = PaymentRepository();
   late Future<_MembershipData> _future;
   String? _buyingPackageId;
+  bool _shouldRefreshOnResume = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _future = _load();
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _shouldRefreshOnResume) {
+      _shouldRefreshOnResume = false;
+      _reload();
+    }
+  }
+
   Future<_MembershipData> _load() async {
-    final results = await Future.wait([
-      _repository.getMyCredit(),
-      _repository.getPackages(),
-    ]);
+    final creditFuture = _creditRepository.getMyCredit();
+    final packagesFuture = _creditRepository.getPackages();
     return _MembershipData(
-      credit: results[0] as UserCreditModel,
-      packages: results[1] as List<CreditPackageModel>,
+      credit: await creditFuture,
+      packages: await packagesFuture,
     );
   }
 
   void _reload() {
+    if (!mounted) {
+      return;
+    }
     setState(() => _future = _load());
   }
 
-  Future<void> _buy(CreditPackageModel package) async {
+  Future<void> _refresh() async {
+    final future = _load();
+    setState(() => _future = future);
+    await future;
+  }
+
+  Future<void> _startPayment(CreditPackageModel package) async {
+    if (_buyingPackageId != null) {
+      return;
+    }
+
     setState(() => _buyingPackageId = package.id);
     try {
-      await _repository.buyPackage(package.id);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Mua ${package.name} thành công.')),
+      final payment = await _paymentRepository.createPayment(
+        packageId: package.id,
       );
+      final paymentUrl = payment.paymentUrl;
+      if (paymentUrl == null || paymentUrl.isEmpty) {
+        throw const ApiException('Backend chưa trả về liên kết thanh toán.');
+      }
+
+      final resolvedUrl = _paymentRepository.resolvePaymentUrl(paymentUrl);
+      final uri = Uri.parse(resolvedUrl);
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened) {
+        throw const ApiException('Không mở được liên kết thanh toán.');
+      }
+
+      _shouldRefreshOnResume = true;
       _reload();
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Đã mở cổng thanh toán. FlexFit sẽ cập nhật khi bạn quay lại.',
+          ),
+        ),
+      );
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      ).showSnackBar(SnackBar(content: Text(_friendlyPaymentError(error))));
     } finally {
       if (mounted) {
         setState(() => _buyingPackageId = null);
       }
     }
+  }
+
+  void _openHistory() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const PaymentHistoryPage()));
   }
 
   @override
@@ -68,6 +131,13 @@ class _MembershipPageState extends State<MembershipPage> {
       appBar: AppBar(
         title: const Text('Thành viên'),
         backgroundColor: _backgroundColor,
+        actions: [
+          IconButton(
+            tooltip: 'Lịch sử thanh toán',
+            onPressed: _openHistory,
+            icon: const Icon(Icons.receipt_long_rounded),
+          ),
+        ],
       ),
       body: SafeArea(
         child: FutureBuilder<_MembershipData>(
@@ -85,32 +155,63 @@ class _MembershipPageState extends State<MembershipPage> {
             }
 
             final data = snapshot.data!;
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-              children: [
-                _CreditHeader(credit: data.credit),
-                const SizedBox(height: 18),
-                const Text(
-                  'Gói Credit',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (data.packages.isEmpty)
-                  const _EmptyPackages()
-                else
-                  for (final package in data.packages) ...[
-                    _PackageCard(
-                      package: package,
-                      isBuying: _buyingPackageId == package.id,
-                      onBuy: () => _buy(package),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-              ],
+            return RefreshIndicator(
+              onRefresh: _refresh,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth >= 720;
+                  return ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                    children: [
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 760),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _CreditHeader(credit: data.credit),
+                              const SizedBox(height: 18),
+                              Row(
+                                children: [
+                                  const Expanded(
+                                    child: Text(
+                                      'Gói Credit',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: _openHistory,
+                                    icon: const Icon(
+                                      Icons.history_rounded,
+                                      size: 18,
+                                    ),
+                                    label: const Text('Lịch sử'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              if (data.packages.isEmpty)
+                                const _EmptyPackages()
+                              else
+                                _PackageGrid(
+                                  packages: data.packages,
+                                  isWide: isWide,
+                                  buyingPackageId: _buyingPackageId,
+                                  onBuy: _startPayment,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             );
           },
         ),
@@ -130,16 +231,30 @@ class _CreditHeader extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _MembershipPageState._cardColor,
+        gradient: const LinearGradient(
+          colors: [Color(0xFF111827), Color(0xFF241A14)],
+        ),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(
+          color: _MembershipPageState._primaryOrange.withValues(alpha: 0.24),
+        ),
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.workspace_premium_rounded,
-            color: _MembershipPageState._primaryOrange,
-            size: 34,
+          Container(
+            height: 54,
+            width: 54,
+            decoration: BoxDecoration(
+              color: _MembershipPageState._primaryOrange.withValues(
+                alpha: 0.14,
+              ),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(
+              Icons.workspace_premium_rounded,
+              color: _MembershipPageState._primaryOrange,
+              size: 34,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -156,7 +271,7 @@ class _CreditHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Đã nhận ${credit.totalEarned} - Đã dùng ${credit.totalSpent}',
+                  'Đã nhận ${credit.totalEarned} · Đã dùng ${credit.totalSpent}',
                   style: const TextStyle(
                     color: Colors.white70,
                     fontWeight: FontWeight.w600,
@@ -171,19 +286,75 @@ class _CreditHeader extends StatelessWidget {
   }
 }
 
+class _PackageGrid extends StatelessWidget {
+  const _PackageGrid({
+    required this.packages,
+    required this.isWide,
+    required this.buyingPackageId,
+    required this.onBuy,
+  });
+
+  final List<CreditPackageModel> packages;
+  final bool isWide;
+  final String? buyingPackageId;
+  final ValueChanged<CreditPackageModel> onBuy;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isWide) {
+      return Column(
+        children: [
+          for (final package in packages) ...[
+            _PackageCard(
+              package: package,
+              isBuying: buyingPackageId == package.id,
+              isDisabled:
+                  buyingPackageId != null && buyingPackageId != package.id,
+              onBuy: () => onBuy(package),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ],
+      );
+    }
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        for (final package in packages)
+          SizedBox(
+            width: 374,
+            child: _PackageCard(
+              package: package,
+              isBuying: buyingPackageId == package.id,
+              isDisabled:
+                  buyingPackageId != null && buyingPackageId != package.id,
+              onBuy: () => onBuy(package),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _PackageCard extends StatelessWidget {
   const _PackageCard({
     required this.package,
     required this.isBuying,
+    required this.isDisabled,
     required this.onBuy,
   });
 
   final CreditPackageModel package;
   final bool isBuying;
+  final bool isDisabled;
   final VoidCallback onBuy;
 
   @override
   Widget build(BuildContext context) {
+    final hasBonus = package.bonusCredit > 0;
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -222,6 +393,26 @@ class _PackageCard extends StatelessWidget {
             package.description ?? '${package.creditAmount} Credit FlexFit',
             style: const TextStyle(color: Colors.white70, height: 1.4),
           ),
+          if (hasBonus) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: _MembershipPageState._primaryOrange.withValues(
+                  alpha: 0.14,
+                ),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '+${package.bonusCredit} bonus · ${package.totalCredit} Credit',
+                style: const TextStyle(
+                  color: _MembershipPageState._primaryOrange,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
           Row(
             children: [
@@ -234,12 +425,14 @@ class _PackageCard extends StatelessWidget {
               ),
               const Spacer(),
               FilledButton(
-                onPressed: isBuying ? null : onBuy,
-                child: Text(
-                  isBuying
-                      ? 'Đang mua...'
-                      : '${package.price.toStringAsFixed(0)} VND',
-                ),
+                onPressed: (isBuying || isDisabled) ? null : onBuy,
+                child: isBuying
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(_formatCurrency(package.price)),
               ),
             ],
           ),
@@ -254,9 +447,18 @@ class _EmptyPackages extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Text(
-      'Không có gói Credit đang hoạt động.',
-      style: TextStyle(color: Colors.white70),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _MembershipPageState._cardColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: const Text(
+        'Không có gói Credit đang hoạt động.',
+        style: TextStyle(color: Colors.white70),
+      ),
     );
   }
 }
@@ -315,4 +517,24 @@ class _MembershipData {
 
   final UserCreditModel credit;
   final List<CreditPackageModel> packages;
+}
+
+String _friendlyPaymentError(Object error) {
+  if (error is ApiException && error.statusCode == 401) {
+    return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để thanh toán.';
+  }
+  return error.toString();
+}
+
+String _formatCurrency(double value) {
+  final text = value.toStringAsFixed(0);
+  final buffer = StringBuffer();
+  for (var i = 0; i < text.length; i++) {
+    final position = text.length - i;
+    buffer.write(text[i]);
+    if (position > 1 && position % 3 == 1) {
+      buffer.write('.');
+    }
+  }
+  return '${buffer.toString()}đ';
 }

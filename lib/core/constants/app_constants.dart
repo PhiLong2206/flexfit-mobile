@@ -30,3 +30,19 @@ class AppConstants {
   // Padding
   static const double defaultPadding = 20;
 }
+
+class AppColors {
+  AppColors._();
+
+  static const Color primary = AppConstants.primaryColor;
+  static const Color background = AppConstants.backgroundColor;
+  static const Color surface = AppConstants.surfaceColor;
+  static const Color card = AppConstants.cardColor;
+  static const Color border = AppConstants.borderColor;
+  static const Color textPrimary = AppConstants.textPrimary;
+  static const Color textSecondary = AppConstants.textSecondary;
+
+  static const Color upcoming = AppConstants.primaryColor;
+  static const Color completed = Color(0xFF22C55E);
+  static const Color cancelled = Color(0xFFEF4444);
+}

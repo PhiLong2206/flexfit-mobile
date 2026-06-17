@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../../../booking/data/repositories/booking_repository.dart';
+import '../../../booking/presentation/pages/booking_confirmation_page.dart';
 import '../../../booking/presentation/pages/gym_detail_page.dart';
+import '../../../booking/presentation/providers/booking_provider.dart';
+import '../../../booking/presentation/widgets/gym_time_slot_sheet.dart';
 import '../../../catalog/data/repositories/catalog_repository.dart';
+import '../../../catalog/domain/entities/branch.dart';
 import '../../../catalog/domain/entities/category.dart' as catalog;
 import '../../../catalog/domain/entities/fitness_class.dart';
 import '../../../catalog/domain/entities/gym.dart';
@@ -22,10 +26,8 @@ class _ExplorePageState extends State<ExplorePage>
   static const Color _primaryOrange = Color(0xFFFF6B16);
 
   final _catalogRepository = CatalogRepository();
-  final _bookingRepository = BookingRepository();
   late final TabController _tabController;
   late Future<_ExploreData> _future;
-  String? _bookingClassId;
 
   @override
   void initState() {
@@ -45,11 +47,13 @@ class _ExplorePageState extends State<ExplorePage>
       _catalogRepository.getGyms(),
       _catalogRepository.getClasses(),
       _catalogRepository.getCategories(),
+      _catalogRepository.getBranches(),
     ]);
     return _ExploreData(
       gyms: results[0] as List<Gym>,
       classes: results[1] as List<FitnessClass>,
       categories: results[2] as List<catalog.Category>,
+      branches: results[3] as List<Branch>,
     );
   }
 
@@ -57,10 +61,14 @@ class _ExplorePageState extends State<ExplorePage>
     setState(() => _future = _load());
   }
 
-  Future<void> _bookClass(FitnessClass fitnessClass) async {
-    setState(() => _bookingClassId = fitnessClass.id);
+  Future<void> _bookClass(
+    BuildContext bookingContext,
+    FitnessClass fitnessClass,
+  ) async {
     try {
-      await _bookingRepository.bookClass(fitnessClass.id);
+      await bookingContext.read<BookingProvider>().createClassBooking(
+        fitnessClass.id,
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -70,60 +78,63 @@ class _ExplorePageState extends State<ExplorePage>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(error.toString())));
-    } finally {
-      if (mounted) {
-        setState(() => _bookingClassId = null);
-      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _backgroundColor,
-      appBar: AppBar(
-        title: const Text('Khám phá'),
-        backgroundColor: _backgroundColor,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: _primaryOrange,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white54,
-          tabs: const [
-            Tab(text: 'Phòng gym'),
-            Tab(text: 'Lớp học'),
-            Tab(text: 'Danh mục'),
-          ],
-        ),
-      ),
-      body: SafeArea(
-        child: FutureBuilder<_ExploreData>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return _StateMessage(
-                title: 'Không tải được dữ liệu khám phá',
-                message: snapshot.error.toString(),
-                onRetry: _reload,
-              );
-            }
-            final data = snapshot.data!;
-            return TabBarView(
+    return ChangeNotifierProvider(
+      create: (_) => BookingProvider(),
+      child: Builder(
+        builder: (context) => Scaffold(
+          backgroundColor: _backgroundColor,
+          appBar: AppBar(
+            title: const Text('Khám phá'),
+            backgroundColor: _backgroundColor,
+            bottom: TabBar(
               controller: _tabController,
-              children: [
-                _GymList(gyms: data.gyms),
-                _ClassList(
-                  classes: data.classes,
-                  bookingClassId: _bookingClassId,
-                  onBook: _bookClass,
-                ),
-                _CategoryList(categories: data.categories),
+              indicatorColor: _primaryOrange,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white54,
+              tabs: const [
+                Tab(text: 'Phòng gym'),
+                Tab(text: 'Lớp học'),
+                Tab(text: 'Danh mục'),
               ],
-            );
-          },
+            ),
+          ),
+          body: SafeArea(
+            child: FutureBuilder<_ExploreData>(
+              future: _future,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return _StateMessage(
+                    title: 'Không tải được dữ liệu khám phá',
+                    message: snapshot.error.toString(),
+                    onRetry: _reload,
+                  );
+                }
+                final data = snapshot.data!;
+                return TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _GymList(gyms: data.gyms, branches: data.branches),
+                    _ClassList(
+                      classes: data.classes,
+                      bookingClassId: context
+                          .watch<BookingProvider>()
+                          .bookingClassId,
+                      onBook: _bookClass,
+                    ),
+                    _CategoryList(categories: data.categories),
+                  ],
+                );
+              },
+            ),
+          ),
         ),
       ),
     );
@@ -131,12 +142,52 @@ class _ExplorePageState extends State<ExplorePage>
 }
 
 class _GymList extends StatelessWidget {
-  const _GymList({required this.gyms});
+  const _GymList({required this.gyms, required this.branches});
 
   static const _fallbackImage =
       'https://images.unsplash.com/photo-1534438327276-14e5300c3a48';
 
   final List<Gym> gyms;
+  final List<Branch> branches;
+
+  Branch? _branchForGym(Gym gym) {
+    return CatalogRepository().resolveBranchForGym(gym, branches);
+  }
+
+  Future<void> _bookOpenGym(BuildContext context, Gym gym) async {
+    final branch = _branchForGym(gym);
+    if (branch == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Phòng gym này chưa có chi nhánh để đặt lịch.'),
+        ),
+      );
+      return;
+    }
+
+    final selection = await showGymTimeSlotSheet(
+      context: context,
+      gymName: gym.name,
+      branch: branch,
+    );
+    if (!context.mounted || selection == null) {
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => BookingConfirmationPage(
+          gymName: gym.name,
+          address: selection.branch.displayAddress,
+          branchName: selection.branch.name,
+          rating: gym.ratingAverage,
+          creditCost: selection.branch.creditCost,
+          branchId: selection.branch.id,
+          startTime: selection.startTime,
+          endTime: selection.endTime,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -154,7 +205,8 @@ class _GymList extends StatelessWidget {
           name: gym.name,
           location: gym.description ?? gym.status,
           rating: gym.ratingAverage,
-          credits: 0,
+          credits: _branchForGym(gym)?.creditCost ?? 0,
+          onBookTap: () => _bookOpenGym(context, gym),
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute<void>(
@@ -177,7 +229,7 @@ class _ClassList extends StatelessWidget {
 
   final List<FitnessClass> classes;
   final String? bookingClassId;
-  final ValueChanged<FitnessClass> onBook;
+  final void Function(BuildContext context, FitnessClass fitnessClass) onBook;
 
   @override
   Widget build(BuildContext context) {
@@ -234,7 +286,9 @@ class _ClassList extends StatelessWidget {
                   ),
                   const Spacer(),
                   FilledButton(
-                    onPressed: isBooking ? null : () => onBook(fitnessClass),
+                    onPressed: isBooking
+                        ? null
+                        : () => onBook(context, fitnessClass),
                     child: Text(isBooking ? 'Đang đặt...' : 'Đặt lịch'),
                   ),
                 ],
@@ -351,9 +405,11 @@ class _ExploreData {
     required this.gyms,
     required this.classes,
     required this.categories,
+    required this.branches,
   });
 
   final List<Gym> gyms;
   final List<FitnessClass> classes;
   final List<catalog.Category> categories;
+  final List<Branch> branches;
 }
