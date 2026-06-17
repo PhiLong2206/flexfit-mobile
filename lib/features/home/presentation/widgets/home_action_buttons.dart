@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../gym/presentation/pages/explore_page.dart';
+
 class HomeActionButtons extends StatelessWidget {
   const HomeActionButtons({super.key});
 
@@ -16,7 +18,11 @@ class HomeActionButtons extends StatelessWidget {
           icon: Icons.arrow_forward_rounded,
           foregroundColor: Colors.white,
           backgroundColor: _primaryOrange,
-          onPressed: () {},
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const ExplorePage()),
+            );
+          },
         ),
         _PillButton(
           label: 'Khám phá',
@@ -24,7 +30,11 @@ class HomeActionButtons extends StatelessWidget {
           foregroundColor: Colors.white,
           backgroundColor: Colors.white.withValues(alpha: 0.12),
           borderColor: Colors.white.withValues(alpha: 0.18),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const ExplorePage()),
+            );
+          },
         ),
       ],
     );

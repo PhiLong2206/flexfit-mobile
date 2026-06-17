@@ -6,11 +6,15 @@ import '../widgets/featured_gym_section.dart';
 import '../widgets/home_header.dart';
 import '../widgets/home_quick_stats_row.dart';
 import '../widgets/hero_banner.dart';
-import '../../../membership/presentation/membership_page.dart';
+import '../../../booking/presentation/pages/my_bookings_page.dart';
+import '../../../gym/presentation/pages/explore_page.dart';
+import '../../../membership/presentation/pages/membership_page.dart';
+import '../../../profile/presentation/pages/profile_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
+  static const String routeName = '/home';
   static const Color _backgroundColor = Color(0xFF070B14);
 
   @override
@@ -24,19 +28,19 @@ class HomePage extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 140),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const HomeHeader(),
-              const SizedBox(height: 16),
-              const HeroBanner(),
-              const SizedBox(height: 24),
-              const HomeQuickStatsRow(),
-              const SizedBox(height: 28),
-              const FeatureSection(),
-              const SizedBox(height: 28),
-              const CategorySection(),
-              const SizedBox(height: 28),
-              const FeaturedGymSection(),
-              const SizedBox(height: 140),
+            children: const [
+              HomeHeader(),
+              SizedBox(height: 16),
+              HeroBanner(),
+              SizedBox(height: 24),
+              HomeQuickStatsRow(),
+              SizedBox(height: 28),
+              FeatureSection(),
+              SizedBox(height: 28),
+              CategorySection(),
+              SizedBox(height: 28),
+              FeaturedGymSection(),
+              SizedBox(height: 140),
             ],
           ),
         ),
@@ -68,36 +72,52 @@ class _HomeBottomNavigationBar extends StatelessWidget {
           children: [
             const _BottomNavItem(
               icon: Icons.home_rounded,
-              label: 'Home',
+              label: 'Trang chủ',
               isActive: true,
             ),
-            const _BottomNavItem(
+            _BottomNavItem(
               icon: Icons.explore_rounded,
-              label: 'Explore',
+              label: 'Khám phá',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ExplorePage(),
+                  ),
+                );
+              },
             ),
-            const _BottomNavItem(
+            _BottomNavItem(
               icon: Icons.calendar_month_rounded,
-              label: 'Booking',
+              label: 'Đặt lịch',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const MyBookingsPage(),
+                  ),
+                );
+              },
             ),
-
-            // Khi bấm vào Membership ở thanh navigation bên dưới,
-            // app sẽ chuyển từ HomePage sang MembershipScreen.
             _BottomNavItem(
               icon: Icons.workspace_premium_rounded,
-              label: 'Membership',
+              label: 'Thành viên',
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
                     builder: (_) => const MembershipPage(),
                   ),
                 );
               },
             ),
-
-            const _BottomNavItem(
+            _BottomNavItem(
               icon: Icons.person_rounded,
-              label: 'Profile',
+              label: 'Hồ sơ',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ProfilePage(),
+                  ),
+                );
+              },
             ),
           ],
         ),

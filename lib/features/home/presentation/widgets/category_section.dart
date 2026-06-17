@@ -1,40 +1,24 @@
 import 'package:flutter/material.dart';
 
-class CategorySection extends StatelessWidget {
+import '../../../catalog/data/repositories/catalog_repository.dart';
+import '../../../catalog/domain/entities/category.dart' as catalog;
+
+class CategorySection extends StatefulWidget {
   const CategorySection({super.key});
 
-  static const List<_CategoryItem> _categories = [
-    _CategoryItem(
-      icon: Icons.fitness_center_rounded,
-      title: 'Gym',
-      subtitle: '10 địa điểm',
-    ),
-    _CategoryItem(
-      icon: Icons.sports_tennis_rounded,
-      title: 'Cầu lông',
-      subtitle: '8 sân',
-    ),
-    _CategoryItem(
-      icon: Icons.sports_tennis_rounded,
-      title: 'Tennis',
-      subtitle: '5 sân',
-    ),
-    _CategoryItem(
-      icon: Icons.self_improvement_rounded,
-      title: 'Yoga',
-      subtitle: '6 lớp',
-    ),
-    _CategoryItem(
-      icon: Icons.sports_mma_rounded,
-      title: 'Boxing',
-      subtitle: '4 lớp',
-    ),
-    _CategoryItem(
-      icon: Icons.pool_rounded,
-      title: 'Bơi lội',
-      subtitle: '3 hồ bơi',
-    ),
-  ];
+  @override
+  State<CategorySection> createState() => _CategorySectionState();
+}
+
+class _CategorySectionState extends State<CategorySection> {
+  final _repository = CatalogRepository();
+  late Future<List<catalog.Category>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _repository.getCategories();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,19 +36,54 @@ class CategorySection extends StatelessWidget {
         const SizedBox(height: 14),
         SizedBox(
           height: 112,
-          child: ListView.separated(
-            clipBehavior: Clip.none,
-            physics: const BouncingScrollPhysics(),
-            scrollDirection: Axis.horizontal,
-            itemCount: _categories.length,
-            separatorBuilder: (_, separatorIndex) => const SizedBox(width: 10),
-            itemBuilder: (context, index) {
-              return _CategoryCard(category: _categories[index]);
+          child: FutureBuilder<List<catalog.Category>>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final categories = snapshot.data ?? const <catalog.Category>[];
+              if (snapshot.hasError || categories.isEmpty) {
+                return const _CategoryCard(
+                  category: _CategoryItem(
+                    icon: Icons.fitness_center_rounded,
+                    title: 'FlexFit',
+                    subtitle: 'Không có danh mục',
+                  ),
+                );
+              }
+              return ListView.separated(
+                clipBehavior: Clip.none,
+                physics: const BouncingScrollPhysics(),
+                scrollDirection: Axis.horizontal,
+                itemCount: categories.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  final category = categories[index];
+                  return _CategoryCard(
+                    category: _CategoryItem(
+                      icon: _iconFor(category.name),
+                      title: category.name,
+                      subtitle: category.description ?? 'Danh mục lớp học',
+                    ),
+                  );
+                },
+              );
             },
           ),
         ),
       ],
     );
+  }
+
+  IconData _iconFor(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('yoga')) return Icons.self_improvement_rounded;
+    if (lower.contains('box')) return Icons.sports_mma_rounded;
+    if (lower.contains('swim') || lower.contains('boi')) {
+      return Icons.pool_rounded;
+    }
+    return Icons.fitness_center_rounded;
   }
 }
 
