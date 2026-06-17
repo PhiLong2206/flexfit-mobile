@@ -1,7 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 
 import '../constants/app_constants.dart';
+import 'api_transport.dart';
+import 'api_transport_factory.dart';
 import 'local_storage.dart';
 
 class ApiException implements Exception {
@@ -15,12 +16,12 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  ApiClient({String? baseUrl, HttpClient? httpClient})
+  ApiClient({String? baseUrl, Object? httpClient, ApiTransport? transport})
     : _baseUrl = baseUrl ?? AppConstants.baseUrl,
-      _httpClient = httpClient ?? HttpClient();
+      _transport = transport ?? createApiTransport(httpClient);
 
   final String _baseUrl;
-  final HttpClient _httpClient;
+  final ApiTransport _transport;
 
   Future<dynamic> get(String path) => _send('GET', path);
 
@@ -40,21 +41,23 @@ class ApiClient {
 
   Future<dynamic> _send(String method, String path, {Object? body}) async {
     final uri = Uri.parse('$_baseUrl${path.startsWith('/') ? path : '/$path'}');
-    final request = await _httpClient.openUrl(method, uri);
-    request.headers.contentType = ContentType.json;
-    request.headers.set(HttpHeaders.acceptHeader, ContentType.json.value);
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
 
     final token = await LocalStorage.getToken();
     if (token != null && token.isNotEmpty) {
-      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+      headers['Authorization'] = 'Bearer $token';
     }
 
-    if (body != null) {
-      request.write(jsonEncode(body));
-    }
-
-    final response = await request.close();
-    final responseText = await response.transform(utf8.decoder).join();
+    final response = await _transport.send(
+      method,
+      uri,
+      headers: headers,
+      body: body == null ? null : jsonEncode(body),
+    );
+    final responseText = response.body;
     final decoded = _decode(responseText);
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
