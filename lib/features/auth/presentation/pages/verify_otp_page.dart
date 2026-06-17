@@ -3,10 +3,13 @@ import 'package:flutter/services.dart';
 
 import '../widgets/auth_button.dart';
 import '../widgets/auth_theme.dart';
+import '../../data/repositories/auth_repository_impl.dart';
 import 'login_page.dart';
 
 class VerifyOtpPage extends StatefulWidget {
-  const VerifyOtpPage({super.key});
+  const VerifyOtpPage({super.key, required this.email});
+
+  final String email;
 
   @override
   State<VerifyOtpPage> createState() => _VerifyOtpPageState();
@@ -15,6 +18,9 @@ class VerifyOtpPage extends StatefulWidget {
 class _VerifyOtpPageState extends State<VerifyOtpPage> {
   late final List<TextEditingController> _controllers;
   late final List<FocusNode> _focusNodes;
+  final _authRepository = AuthRepositoryImpl();
+  bool _isLoading = false;
+  bool _isResending = false;
 
   @override
   void initState() {
@@ -111,33 +117,91 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
               const SizedBox(height: 22),
               Center(
                 child: TextButton(
-                  onPressed: () {
-                    debugPrint('Resend OTP tapped');
-                  },
-                  child: const Text('Gửi lại OTP'),
+                  onPressed: _isResending ? null : _resendOtp,
+                  child: Text(_isResending ? 'Đang gửi...' : 'Gửi lại OTP'),
                 ),
               ),
               const SizedBox(height: 28),
               AuthButton(
                 label: 'Xác nhận',
-                onPressed: () async {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Xác thực thành công!')),
-                  );
-                  await Future<void>.delayed(const Duration(milliseconds: 600));
-                  if (!context.mounted) {
-                    return;
-                  }
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute<void>(builder: (_) => const LoginPage()),
-                  );
-                },
+                isLoading: _isLoading,
+                onPressed: _verify,
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _verify() async {
+    if (_isLoading) return;
+
+    final otp = _controllers.map((controller) => controller.text).join();
+    final validationMessage = _validateOtp(otp);
+    if (validationMessage != null) {
+      _showSnackBar(validationMessage);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await _authRepository.verifyEmail(email: widget.email, otpCode: otp);
+      if (!mounted) return;
+      _showSnackBar('Xác thực OTP thành công.');
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(builder: (_) => const LoginPage()),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showSnackBar(
+        _authErrorMessage(error, fallback: 'Xác thực OTP thất bại'),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _resendOtp() async {
+    setState(() => _isResending = true);
+    try {
+      await _authRepository.resendOtp(email: widget.email);
+      if (!mounted) return;
+      _showSnackBar('Đã gửi lại OTP.');
+    } catch (error) {
+      if (!mounted) return;
+      _showSnackBar(_authErrorMessage(error, fallback: 'Gửi lại OTP thất bại'));
+    } finally {
+      if (mounted) {
+        setState(() => _isResending = false);
+      }
+    }
+  }
+
+  String? _validateOtp(String otp) {
+    if (otp.isEmpty) {
+      return 'Vui lòng nhập mã OTP';
+    }
+    if (otp.length != 6) {
+      return 'Mã OTP phải gồm 6 chữ số';
+    }
+    return null;
+  }
+
+  String _authErrorMessage(Object error, {required String fallback}) {
+    final message = error.toString();
+    if (message.trim().isNotEmpty) {
+      return message;
+    }
+    return fallback;
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

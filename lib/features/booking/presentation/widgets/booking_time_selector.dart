@@ -12,7 +12,7 @@ class BookingTimeSelector extends StatelessWidget {
   final String selectedTime;
   final ValueChanged<String> onSelected;
 
-  static const List<String> options = ['Today', 'Tomorrow', 'Weekend'];
+  static const List<String> options = ['Hôm nay', 'Ngày mai', 'Cuối tuần'];
 
   @override
   Widget build(BuildContext context) {

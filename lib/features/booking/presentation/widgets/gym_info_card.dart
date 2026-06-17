@@ -60,7 +60,7 @@ class GymInfoCard extends StatelessWidget {
               ),
               _MetricChip(
                 icon: Icons.local_fire_department_outlined,
-                label: '$creditCost Credits',
+                label: '$creditCost Credit',
                 color: BookingTheme.primary,
               ),
               _MetricChip(

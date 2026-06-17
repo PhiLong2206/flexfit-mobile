@@ -121,7 +121,7 @@ class GymCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            '$credits credits',
+                            '$credits Credit',
                             style: textTheme.labelSmall?.copyWith(
                               color: _primaryOrange,
                               fontWeight: FontWeight.w800,

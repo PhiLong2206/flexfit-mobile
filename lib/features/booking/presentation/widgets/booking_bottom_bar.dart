@@ -8,11 +8,13 @@ class BookingBottomBar extends StatelessWidget {
     required this.creditCost,
     required this.onPressed,
     this.buttonText = 'Đặt lịch ngay',
+    this.isLoading = false,
   });
 
   final int creditCost;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final String buttonText;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +43,7 @@ class BookingBottomBar extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '$creditCost Credits',
+                    '$creditCost Credit',
                     style: const TextStyle(
                       color: BookingTheme.text,
                       fontSize: 20,
@@ -54,7 +56,7 @@ class BookingBottomBar extends StatelessWidget {
             SizedBox(
               height: 54,
               child: FilledButton(
-                onPressed: onPressed,
+                onPressed: isLoading ? null : onPressed,
                 style: FilledButton.styleFrom(
                   backgroundColor: BookingTheme.primary,
                   foregroundColor: BookingTheme.text,
@@ -66,7 +68,7 @@ class BookingBottomBar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(18),
                   ),
                 ),
-                child: Text(buttonText),
+                child: Text(isLoading ? 'Vui lòng chờ...' : buttonText),
               ),
             ),
           ],

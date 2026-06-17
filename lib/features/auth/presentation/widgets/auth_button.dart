@@ -8,11 +8,13 @@ class AuthButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon,
+    this.isLoading = false,
   });
 
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final IconData? icon;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -20,9 +22,17 @@ class AuthButton extends StatelessWidget {
       width: double.infinity,
       height: 56,
       child: FilledButton.icon(
-        onPressed: onPressed,
-        icon: icon == null ? const SizedBox.shrink() : Icon(icon),
-        label: Text(label),
+        onPressed: isLoading ? null : onPressed,
+        icon: isLoading
+            ? const SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : icon == null
+            ? const SizedBox.shrink()
+            : Icon(icon),
+        label: Text(isLoading ? 'Vui lòng chờ...' : label),
         style: FilledButton.styleFrom(
           backgroundColor: AuthTheme.primary,
           foregroundColor: AuthTheme.text,

@@ -6,7 +6,7 @@ import '../widgets/featured_gym_section.dart';
 import '../widgets/home_header.dart';
 import '../widgets/home_quick_stats_row.dart';
 import '../widgets/hero_banner.dart';
-import '../../../booking/presentation/pages/booking_confirmation_page.dart';
+import '../../../booking/presentation/pages/my_bookings_page.dart';
 import '../../../gym/presentation/pages/explore_page.dart';
 import '../../../membership/presentation/pages/membership_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
@@ -72,12 +72,12 @@ class _HomeBottomNavigationBar extends StatelessWidget {
           children: [
             const _BottomNavItem(
               icon: Icons.home_rounded,
-              label: 'Home',
+              label: 'Trang chủ',
               isActive: true,
             ),
             _BottomNavItem(
               icon: Icons.explore_rounded,
-              label: 'Explore',
+              label: 'Khám phá',
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(builder: (_) => const ExplorePage()),
@@ -86,18 +86,18 @@ class _HomeBottomNavigationBar extends StatelessWidget {
             ),
             _BottomNavItem(
               icon: Icons.calendar_month_rounded,
-              label: 'Booking',
+              label: 'Đặt lịch',
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => const BookingConfirmationPage(),
+                    builder: (_) => const MyBookingsPage(),
                   ),
                 );
               },
             ),
             _BottomNavItem(
               icon: Icons.workspace_premium_rounded,
-              label: 'Membership',
+              label: 'Thành viên',
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -108,7 +108,7 @@ class _HomeBottomNavigationBar extends StatelessWidget {
             ),
             _BottomNavItem(
               icon: Icons.person_rounded,
-              label: 'Profile',
+              label: 'Hồ sơ',
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(builder: (_) => const ProfilePage()),

@@ -3,6 +3,12 @@ import 'package:flutter/material.dart';
 class AppConstants {
   AppConstants._();
 
+  // API
+  static const String baseUrl = 'http://localhost:5023/api';
+
+  // Android emulator fallback when localhost points at the device itself.
+  static const String androidEmulatorBaseUrl = 'http://10.0.2.2:5023/api';
+
   // Colors
   static const Color primaryColor = Color(0xFFFF6B16);
 

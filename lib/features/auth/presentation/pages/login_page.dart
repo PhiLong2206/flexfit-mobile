@@ -5,6 +5,7 @@ import '../widgets/auth_header.dart';
 import '../widgets/auth_social_button.dart';
 import '../widgets/auth_text_field.dart';
 import '../widgets/auth_theme.dart';
+import '../../data/repositories/auth_repository_impl.dart';
 import '../../../home/presentation/pages/home_page.dart';
 import 'register_page.dart';
 
@@ -18,8 +19,10 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authRepository = AuthRepositoryImpl();
   bool _rememberMe = true;
   bool _hidePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -100,14 +103,8 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 18),
               AuthButton(
                 label: 'Đăng nhập',
-                onPressed: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute<void>(
-                      settings: const RouteSettings(name: HomePage.routeName),
-                      builder: (_) => const HomePage(),
-                    ),
-                  );
-                },
+                isLoading: _isLoading,
+                onPressed: _login,
               ),
               const SizedBox(height: 24),
               const _DividerText(text: 'Hoặc tiếp tục với'),
@@ -135,6 +132,79 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _login() async {
+    if (_isLoading) return;
+
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final validationMessage = _validateLogin(email: email, password: password);
+    if (validationMessage != null) {
+      _showSnackBar(validationMessage);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await _authRepository.login(email: email, password: password);
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          settings: const RouteSettings(name: HomePage.routeName),
+          builder: (_) => const HomePage(),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showSnackBar(_loginErrorMessage(error));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  String? _validateLogin({required String email, required String password}) {
+    if (email.isEmpty && password.isEmpty) {
+      return 'Vui lòng nhập email và mật khẩu';
+    }
+    if (email.isEmpty) {
+      return 'Vui lòng nhập email';
+    }
+    if (!email.contains('@')) {
+      return 'Email không hợp lệ';
+    }
+    if (password.isEmpty) {
+      return 'Vui lòng nhập mật khẩu';
+    }
+    if (password.length < 6) {
+      return 'Mật khẩu phải có ít nhất 6 ký tự';
+    }
+    return null;
+  }
+
+  String _loginErrorMessage(Object error) {
+    final message = error.toString().toLowerCase();
+    if (message.contains('email') &&
+        (message.contains('không tồn tại') ||
+            message.contains('khong ton tai') ||
+            message.contains('not exist') ||
+            message.contains('not found'))) {
+      return 'Email không tồn tại';
+    }
+    if (message.contains('mật khẩu') ||
+        message.contains('mat khau') ||
+        message.contains('password')) {
+      return 'Mật khẩu không đúng';
+    }
+    return 'Đăng nhập thất bại';
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
