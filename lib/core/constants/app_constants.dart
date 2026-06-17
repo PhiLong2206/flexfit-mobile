@@ -1,4 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+// TODO: Replace localhost:5713 with production domain before deployment.
+const kGoogleLocalOrigin = 'http://localhost:5713';
 
 class AppConstants {
   AppConstants._();
@@ -8,6 +12,17 @@ class AppConstants {
 
   // Android emulator fallback when localhost points at the device itself.
   static const String androidEmulatorBaseUrl = 'http://10.0.2.2:5023/api';
+
+  static const String googleClientId = String.fromEnvironment(
+    'GOOGLE_CLIENT_ID',
+  );
+
+  static String get googleOAuthOrigin {
+    if (kDebugMode) {
+      return kGoogleLocalOrigin;
+    }
+    return Uri.base.origin;
+  }
 
   // Colors
   static const Color primaryColor = Color(0xFFFF6B16);

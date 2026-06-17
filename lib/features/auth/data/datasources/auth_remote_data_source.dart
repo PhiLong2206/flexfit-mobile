@@ -20,6 +20,16 @@ class AuthRemoteDataSource {
     );
   }
 
+  Future<AuthSessionModel> googleLogin({required String idToken}) async {
+    final response = await _apiClient.post(
+      '/Auth/google-login',
+      body: {'idToken': idToken},
+    );
+    return AuthSessionModel.fromJson(
+      Map<String, dynamic>.from(response as Map),
+    );
+  }
+
   Future<void> register({
     required String fullName,
     required String email,

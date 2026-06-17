@@ -5,7 +5,9 @@ import '../widgets/auth_header.dart';
 import '../widgets/auth_social_button.dart';
 import '../widgets/auth_text_field.dart';
 import '../widgets/auth_theme.dart';
+import '../../../../core/services/local_storage.dart';
 import '../../data/repositories/auth_repository_impl.dart';
+import '../providers/auth_provider.dart';
 import '../../../home/presentation/pages/home_page.dart';
 import 'register_page.dart';
 
@@ -20,12 +22,22 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authRepository = AuthRepositoryImpl();
+  final _authProvider = AuthProvider();
   bool _rememberMe = true;
   bool _hidePassword = true;
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _authProvider.addListener(_handleAuthProviderChanged);
+    _loadRememberedCredentials();
+  }
+
+  @override
   void dispose() {
+    _authProvider.removeListener(_handleAuthProviderChanged);
+    _authProvider.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -111,9 +123,8 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 18),
               AuthSocialButton(
                 label: 'Tiếp tục với Google',
-                onPressed: () {
-                  debugPrint('Google login tapped');
-                },
+                isLoading: _authProvider.isGoogleLoading,
+                onPressed: _loginWithGoogle,
               ),
               const SizedBox(height: 28),
               _BottomPrompt(
