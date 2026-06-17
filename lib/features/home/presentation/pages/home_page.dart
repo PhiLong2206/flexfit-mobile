@@ -28,19 +28,19 @@ class HomePage extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 140),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const HomeHeader(),
-              const SizedBox(height: 16),
-              const HeroBanner(),
-              const SizedBox(height: 24),
-              const HomeQuickStatsRow(),
-              const SizedBox(height: 28),
-              const FeatureSection(),
-              const SizedBox(height: 28),
-              const CategorySection(),
-              const SizedBox(height: 28),
-              const FeaturedGymSection(),
-              const SizedBox(height: 140),
+            children: const [
+              HomeHeader(),
+              SizedBox(height: 16),
+              HeroBanner(),
+              SizedBox(height: 24),
+              HomeQuickStatsRow(),
+              SizedBox(height: 28),
+              FeatureSection(),
+              SizedBox(height: 28),
+              CategorySection(),
+              SizedBox(height: 28),
+              FeaturedGymSection(),
+              SizedBox(height: 140),
             ],
           ),
         ),
@@ -80,7 +80,9 @@ class _HomeBottomNavigationBar extends StatelessWidget {
               label: 'Khám phá',
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const ExplorePage()),
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ExplorePage(),
+                  ),
                 );
               },
             ),
@@ -111,7 +113,9 @@ class _HomeBottomNavigationBar extends StatelessWidget {
               label: 'Hồ sơ',
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const ProfilePage()),
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ProfilePage(),
+                  ),
                 );
               },
             ),
@@ -142,8 +146,8 @@ class _BottomNavItem extends StatelessWidget {
     final color = isActive ? _primaryOrange : Colors.white54;
 
     return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
