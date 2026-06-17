@@ -1,124 +1,138 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/services/local_storage.dart';
 import '../../../booking/presentation/pages/booking_history_page.dart';
+import '../../data/profile_notifier.dart';
 import '../widgets/health_goal_form.dart';
 import '../widgets/personal_info_form.dart';
 import '../widgets/profile_header.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
   @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProfileNotifier>().fetchProfile();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [
-              // App bar with back button
-              SliverAppBar(
-                backgroundColor: AppColors.background,
-                elevation: 0,
-                pinned: true,
-                floating: false,
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                  tooltip: 'Quay lại',
-                  onPressed: () => Navigator.of(context).maybePop(),
-                ),
-              ),
-              // Header content that scrolls away
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Hồ Sơ & Cài Đặt',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          height: 1.15,
+                headerSliverBuilder: (context, innerBoxIsScrolled) {
+                  return [
+                    // App bar with back button
+                    SliverAppBar(
+                      backgroundColor: AppColors.background,
+                      elevation: 0,
+                      pinned: true,
+                      floating: false,
+                      leading: IconButton(
+                        icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                        tooltip: 'Quay lại',
+                        onPressed: () => Navigator.of(context).maybePop(),
+                      ),
+                    ),
+                    // Header content that scrolls away
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Hồ Sơ & Cài Đặt',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w900,
+                                height: 1.15,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Quản lý thông tin cá nhân và tùy chọn của bạn.',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.6),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            const ProfileHeader(),
+                            const SizedBox(height: 20),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Quản lý thông tin cá nhân và tùy chọn của bạn.',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                    ),
+                    // Persistent TabBar header
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _SliverTabBarDelegate(
+                        const TabBar(
+                          dividerColor: Colors.transparent,
+                          indicatorColor: AppColors.primary,
+                          indicatorSize: TabBarIndicatorSize.tab,
+                          labelColor: AppColors.primary,
+                          unselectedLabelColor: AppColors.textSecondary,
+                          labelStyle: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          unselectedLabelStyle: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          tabs: [
+                            Tab(text: 'Cá nhân'),
+                            Tab(text: 'Sức khỏe'),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      const ProfileHeader(),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
+                    ),
+                  ];
+                },
+                body: TabBarView(
+                  children: [
+                    SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.only(top: 14, bottom: 32),
+                      child: Column(
+                        children: [
+                          const PersonalInfoForm(),
+                          const SizedBox(height: 20),
+                          _ProfileMenuCard(),
+                        ],
+                      ),
+                    ),
+                    SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.only(top: 14, bottom: 32),
+                      child: Column(
+                        children: [
+                          const HealthGoalForm(),
+                          const SizedBox(height: 20),
+                          _ProfileMenuCard(),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              // Pinned tab bar that sticks at the top when scrolled
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _SliverTabBarDelegate(
-                  TabBar(
-                    dividerColor: Colors.transparent,
-                    indicatorColor: AppColors.primary,
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    labelColor: AppColors.primary,
-                    unselectedLabelColor: AppColors.textSecondary,
-                    labelStyle: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    unselectedLabelStyle: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    tabs: const [
-                      Tab(text: 'Thông tin cá nhân'),
-                      Tab(text: 'Sức khỏe & Mục tiêu'),
-                    ],
-                  ),
-                ),
-              ),
-            ];
-          },
-          body: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: TabBarView(
-              children: [
-                SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(top: 14, bottom: 32),
-                  child: Column(
-                    children: [
-                      const PersonalInfoForm(),
-                      const SizedBox(height: 20),
-                      _ProfileMenuCard(),
-                    ],
-                  ),
-                ),
-                SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(top: 14, bottom: 32),
-                  child: Column(
-                    children: [
-                      const HealthGoalForm(),
-                      const SizedBox(height: 20),
-                      _ProfileMenuCard(),
-                    ],
-                  ),
-                ),
-              ],
             ),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -221,11 +235,14 @@ class _ProfileMenuCard extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            onTap: () {
-              Navigator.of(context).pushNamedAndRemoveUntil(
-                '/',
-                (route) => false,
-              );
+            onTap: () async {
+              await LocalStorage.removeToken();
+              if (context.mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/',
+                  (route) => false,
+                );
+              }
             },
           ),
         ],

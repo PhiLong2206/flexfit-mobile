@@ -19,21 +19,41 @@ class _PersonalInfoFormState extends State<PersonalInfoForm>
   late TextEditingController _phoneController;
   bool _isSaving = false;
 
+  late ProfileNotifier _profileNotifier;
+
   @override
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    final profile = context.read<ProfileNotifier>().profile;
+    _profileNotifier = context.read<ProfileNotifier>();
+    _profileNotifier.addListener(_onProfileChanged);
+    _initControllers();
+  }
+
+  void _initControllers() {
+    final profile = _profileNotifier.profile;
     _firstNameController = TextEditingController(text: profile.firstName);
     _lastNameController = TextEditingController(text: profile.lastName);
     _emailController = TextEditingController(text: profile.email);
     _phoneController = TextEditingController(text: profile.phone);
   }
 
+  void _onProfileChanged() {
+    if (!mounted) return;
+    final profile = _profileNotifier.profile;
+    setState(() {
+      _firstNameController.text = profile.firstName;
+      _lastNameController.text = profile.lastName;
+      _emailController.text = profile.email;
+      _phoneController.text = profile.phone;
+    });
+  }
+
   @override
   void dispose() {
+    _profileNotifier.removeListener(_onProfileChanged);
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();

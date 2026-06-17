@@ -40,13 +40,21 @@ class _HealthGoalFormState extends State<HealthGoalForm>
     'Buổi tối',
   ];
 
+  late ProfileNotifier _profileNotifier;
+
   @override
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    final profile = context.read<ProfileNotifier>().profile;
+    _profileNotifier = context.read<ProfileNotifier>();
+    _profileNotifier.addListener(_onProfileChanged);
+    _initFields();
+  }
+
+  void _initFields() {
+    final profile = _profileNotifier.profile;
     _selectedGender =
         _genders.contains(profile.gender) ? profile.gender : _genders.first;
     _selectedBirthDate = profile.birthDate;
@@ -66,8 +74,31 @@ class _HealthGoalFormState extends State<HealthGoalForm>
     _bioController = TextEditingController(text: profile.bio);
   }
 
+  void _onProfileChanged() {
+    if (!mounted) return;
+    final profile = _profileNotifier.profile;
+    setState(() {
+      _selectedGender =
+          _genders.contains(profile.gender) ? profile.gender : _genders.first;
+      _selectedBirthDate = profile.birthDate;
+      _heightController.text = profile.height.toString().replaceAll('.', ',');
+      _weightController.text = profile.weight.toStringAsFixed(0);
+      _selectedGoal = _goals.contains(profile.fitnessGoal)
+          ? profile.fitnessGoal
+          : _goals.first;
+      _selectedActivityLevel = _activityLevels.contains(profile.activityLevel)
+          ? profile.activityLevel
+          : _activityLevels.first;
+      _selectedPreferredTime = _timeSlots.contains(profile.preferredTimeSlot)
+          ? profile.preferredTimeSlot
+          : _timeSlots.first;
+      _bioController.text = profile.bio;
+    });
+  }
+
   @override
   void dispose() {
+    _profileNotifier.removeListener(_onProfileChanged);
     _heightController.dispose();
     _weightController.dispose();
     _bioController.dispose();

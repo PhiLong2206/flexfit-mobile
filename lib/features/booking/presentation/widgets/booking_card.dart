@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../profile/data/booking_notifier.dart';
 import '../../../profile/data/models/booking_item.dart';
+import '../../data/models/booking_model.dart';
 
 class BookingCard extends StatelessWidget {
-  final BookingItem booking;
+  final BookingModel booking;
 
   const BookingCard({super.key, required this.booking});
+
+  BookingStatus get _statusEnum {
+    final s = booking.status.toLowerCase();
+    if (s == 'cancelled' || s == 'canceled') return BookingStatus.cancelled;
+    if (s == 'completed') return BookingStatus.completed;
+    return BookingStatus.upcoming;
+  }
 
   Color _getStatusColor(BookingStatus status) {
     switch (status) {
@@ -35,10 +45,94 @@ class BookingCard extends StatelessWidget {
     return '$day/$month/${date.year}';
   }
 
+  String _formatTime(DateTime time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  String _formatTimeSlot(DateTime start, DateTime end) {
+    return '${_formatTime(start)} - ${_formatTime(end)}';
+  }
+
+  String get _imageUrl {
+    // Choose image based on type or title
+    if (booking.type == BookingType.classBooking) {
+      return 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438'; // Class studio image
+    }
+    return 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48'; // Gym center image
+  }
+
+  void _showCancelDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: AppColors.card,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text(
+            'Hủy lịch tập',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+          ),
+          content: const Text(
+            'Bạn có chắc chắn muốn hủy lịch tập này không?',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Bỏ qua', style: TextStyle(color: Colors.white70)),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                try {
+                  await context.read<BookingNotifier>().cancelBooking(booking);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Row(
+                          children: [
+                            Icon(Icons.check_circle_rounded, color: Colors.white),
+                            SizedBox(width: 10),
+                            Text('Hủy lịch tập thành công!', style: TextStyle(fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                        backgroundColor: AppColors.completed,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Lỗi: $e'),
+                        backgroundColor: AppColors.cancelled,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text(
+                'Đồng ý',
+                style: TextStyle(color: AppColors.cancelled, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final statusColor = _getStatusColor(booking.status);
-    final statusText = _getStatusText(booking.status);
+    final status = _statusEnum;
+    final statusColor = _getStatusColor(status);
+    final statusText = _getStatusText(status);
 
     return Container(
       width: double.infinity,
@@ -54,7 +148,7 @@ class BookingCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Image.network(
-              booking.imageUrl,
+              _imageUrl,
               height: 84,
               width: 84,
               fit: BoxFit.cover,
@@ -81,7 +175,7 @@ class BookingCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        booking.gymName,
+                        booking.gymName ?? booking.title,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -127,7 +221,7 @@ class BookingCard extends StatelessWidget {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        booking.address,
+                        booking.subtitle ?? 'Chi nhánh FlexFit',
                         style: const TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 12,
@@ -149,7 +243,7 @@ class BookingCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '${_formatDate(booking.date)} | ${booking.timeSlot}',
+                      '${_formatDate(booking.startTime)} | ${_formatTimeSlot(booking.startTime, booking.endTime)}',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 12,
@@ -167,9 +261,9 @@ class BookingCard extends StatelessWidget {
                       size: 16,
                     ),
                     const SizedBox(width: 3),
-                    Text(
-                      booking.rating.toStringAsFixed(1),
-                      style: const TextStyle(
+                    const Text(
+                      '4.8',
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -177,7 +271,7 @@ class BookingCard extends StatelessWidget {
                     ),
                     const Spacer(),
                     Text(
-                      '${booking.creditCost} Credits',
+                      '${booking.creditUsed} Credits',
                       style: const TextStyle(
                         color: AppColors.primary,
                         fontSize: 13,
@@ -186,6 +280,30 @@ class BookingCard extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (status == BookingStatus.upcoming) ...[
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: OutlinedButton(
+                      onPressed: () => _showCancelDialog(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.cancelled,
+                        side: const BorderSide(color: AppColors.cancelled, width: 1.2),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Hủy lịch',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

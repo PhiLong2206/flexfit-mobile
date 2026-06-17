@@ -30,7 +30,6 @@ class AppConstants {
   // Padding
   static const double defaultPadding = 20;
 }
-
 class AppColors {
   AppColors._();
 

@@ -21,9 +21,24 @@ class _BookingTabViewState extends State<BookingTabView>
   bool get wantKeepAlive => true;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<BookingNotifier>().fetchBookings();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     super.build(context);
     final bookingNotifier = context.watch<BookingNotifier>();
+
+    if (bookingNotifier.isLoading && bookingNotifier.bookings.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+
     final filteredBookings = bookingNotifier.getBookingsByStatus(widget.status);
 
     if (filteredBookings.isEmpty) {
