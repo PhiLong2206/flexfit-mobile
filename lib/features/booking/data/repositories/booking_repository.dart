@@ -1,12 +1,23 @@
 import '../../../../core/services/api_client.dart';
 import '../models/booking_model.dart';
+import 'package:dio/dio.dart'; // Giữ lại để dùng object Response cho 2 hàm chi tiết của ông
 
 class BookingRepository {
   BookingRepository({ApiClient? apiClient})
-    : _apiClient = apiClient ?? ApiClient();
+      : _apiClient = apiClient ?? ApiClient();
 
   final ApiClient _apiClient;
 
+  // --- 2 HÀM CHI TIẾT CHÍNH CHỦ CỦA ÔNG (Đã được sửa sang dùng _apiClient cho đồng bộ nhóm) ---
+  Future<dynamic> getGymDetail(String gymId) async {
+    return await _apiClient.get('/bookings/gyms/$gymId');
+  }
+
+  Future<dynamic> getClassDetail(String classId) async {
+    return await _apiClient.get('/bookings/classes/$classId');
+  }
+
+  // --- CÁC HÀM CỦA CẢ NHÓM (Nhóm trưởng viết bằng ApiClient) ---
   Future<BookingModel> bookGym({
     required String branchId,
     required String sessionName,
@@ -40,8 +51,8 @@ class BookingRepository {
     return (response as List)
         .map(
           (item) =>
-              BookingModel.fromGymJson(Map<String, dynamic>.from(item as Map)),
-        )
+          BookingModel.fromGymJson(Map<String, dynamic>.from(item as Map)),
+    )
         .toList();
   }
 
@@ -50,9 +61,9 @@ class BookingRepository {
     return (response as List)
         .map(
           (item) => BookingModel.fromClassJson(
-            Map<String, dynamic>.from(item as Map),
-          ),
-        )
+        Map<String, dynamic>.from(item as Map),
+      ),
+    )
         .toList();
   }
 
