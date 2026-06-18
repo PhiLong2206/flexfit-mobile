@@ -5,11 +5,13 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/api_client.dart';
+import '../../../../core/services/payment_deep_link_service.dart';
 import '../../../profile/data/repositories/profile_repository.dart';
 import '../../data/credit_refresh_notifier.dart';
 import '../../data/models/credit_package_model.dart';
 import '../../data/repositories/credit_repository.dart';
 import '../../data/repositories/payment_repository.dart';
+import '../../../home/presentation/pages/home_page.dart';
 import 'payment_history_page.dart';
 
 class MembershipPage extends StatefulWidget {
@@ -33,17 +35,21 @@ class _MembershipPageState extends State<MembershipPage>
   String? _buyingPackageId;
   String? _pendingPaymentId;
   bool _shouldRefreshOnResume = false;
+  StreamSubscription<PaymentDeepLinkResult>? _paymentLinkSubscription;
+  final Set<String> _handledPaymentLinks = {};
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _future = _load();
+    _listenForPaymentDeepLinks();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _paymentLinkSubscription?.cancel();
     super.dispose();
   }
 
@@ -62,6 +68,66 @@ class _MembershipPageState extends State<MembershipPage>
       credit: await creditFuture,
       packages: await packagesFuture,
     );
+  }
+
+  void _listenForPaymentDeepLinks() {
+    _paymentLinkSubscription = PaymentDeepLinkService.instance.links.listen(
+      _handlePaymentDeepLink,
+    );
+    unawaited(_handleInitialPaymentDeepLink());
+  }
+
+  Future<void> _handleInitialPaymentDeepLink() async {
+    final result = await PaymentDeepLinkService.instance.getInitialLink();
+    if (result != null) {
+      await _handlePaymentDeepLink(result);
+    }
+  }
+
+  Future<void> _handlePaymentDeepLink(PaymentDeepLinkResult result) async {
+    final linkKey = result.uri.toString();
+    if (!_handledPaymentLinks.add(linkKey) || !mounted) {
+      return;
+    }
+
+    _shouldRefreshOnResume = false;
+    _pendingPaymentId ??= result.uri.queryParameters['paymentId'];
+
+    if (result.status == PaymentDeepLinkStatus.success) {
+      await _refreshAfterPayment(showDialogs: false);
+      await _reloadProfileQuietly();
+      if (!mounted) {
+        return;
+      }
+      _showPaymentSnackBar('Thanh toán thành công', AppColors.completed);
+      return;
+    }
+
+    _pendingPaymentId = null;
+    await _refresh();
+    if (!mounted) {
+      return;
+    }
+    _showPaymentSnackBar('Bạn đã hủy giao dịch', AppColors.cancelled);
+  }
+
+  void _showPaymentSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: color,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      );
   }
 
   void _reload() {
@@ -323,17 +389,31 @@ class _MembershipPageState extends State<MembershipPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-      appBar: AppBar(
-        title: const Text('Thành viên'),
-        backgroundColor: _backgroundColor,
-        actions: [
-          IconButton(
-            tooltip: 'Lịch sử thanh toán',
-            onPressed: _openHistory,
-            icon: const Icon(Icons.receipt_long_rounded),
-          ),
-        ],
-      ),
+   appBar: AppBar(
+  title: const Text('Thành viên'),
+  backgroundColor: _backgroundColor,
+  leading: IconButton(
+    tooltip: 'Quay lại',
+    icon: const Icon(Icons.arrow_back_ios_new_rounded),
+    onPressed: () {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+        return;
+      }
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+    },
+  ),
+  actions: [
+    IconButton(
+      tooltip: 'Lịch sử thanh toán',
+      onPressed: _openHistory,
+      icon: const Icon(Icons.receipt_long_rounded),
+    ),
+  ],
+),
       body: SafeArea(
         child: FutureBuilder<_MembershipData>(
           future: _future,
