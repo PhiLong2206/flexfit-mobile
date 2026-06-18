@@ -4,6 +4,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../profile/data/booking_notifier.dart';
 import '../../../profile/data/models/booking_item.dart';
 import '../../data/models/booking_model.dart';
+import '../../../review/presentation/widgets/write_review_dialog.dart';
 
 class BookingCard extends StatelessWidget {
   final BookingModel booking;
@@ -304,10 +305,55 @@ class BookingCard extends StatelessWidget {
                     ),
                   ),
                 ],
+                if (status == BookingStatus.completed) ...[
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: booking.isReviewed
+                        ? Text(
+                            'Đã đánh giá',
+                            style: TextStyle(
+                              color: AppColors.textSecondary.withValues(alpha: 0.8),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          )
+                        : ElevatedButton(
+                            onPressed: () => _openReviewDialog(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              'Viết đánh giá',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                  ),
+                ],
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _openReviewDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => WriteReviewDialog(
+        gymId: booking.gymId ?? 'fallback_gym_id',
+        gymName: booking.gymName ?? booking.title,
+        bookingId: booking.id,
       ),
     );
   }

@@ -62,4 +62,14 @@ class BookingNotifier extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  void markBookingAsReviewedLocally(String bookingId) {
+    final index = _bookings.indexWhere((b) => b.id == bookingId);
+    if (index != -1) {
+      final updatedList = List<BookingModel>.from(_bookings);
+      updatedList[index] = updatedList[index].copyWith(isReviewed: true);
+      _bookings = updatedList;
+      notifyListeners();
+    }
+  }
 }

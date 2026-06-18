@@ -11,6 +11,9 @@ class MemberProfileModel {
     this.activityLevel,
     this.preferredWorkoutTime,
     this.bio,
+    this.avatarUrl,
+    this.targetWeight,
+    this.workoutSessionsPerWeek,
   });
 
   final String fullName;
@@ -24,6 +27,9 @@ class MemberProfileModel {
   final String? activityLevel;
   final String? preferredWorkoutTime;
   final String? bio;
+  final String? avatarUrl;
+  final double? targetWeight;
+  final int? workoutSessionsPerWeek;
 
   factory MemberProfileModel.fromJson(Map<String, dynamic> json) {
     return MemberProfileModel(
@@ -38,6 +44,9 @@ class MemberProfileModel {
       activityLevel: _read(json, 'activityLevel')?.toString(),
       preferredWorkoutTime: _read(json, 'preferredWorkoutTime')?.toString(),
       bio: _read(json, 'bio')?.toString(),
+      avatarUrl: _read(json, 'avatarUrl')?.toString() ?? _read(json, 'avatar')?.toString(),
+      targetWeight: double.tryParse(_read(json, 'targetWeight')?.toString() ?? ''),
+      workoutSessionsPerWeek: int.tryParse(_read(json, 'workoutSessionsPerWeek')?.toString() ?? ''),
     );
   }
 
@@ -53,6 +62,9 @@ class MemberProfileModel {
       'activityLevel': activityLevel,
       'preferredWorkoutTime': preferredWorkoutTime,
       'bio': bio,
+      'avatarUrl': avatarUrl,
+      'targetWeight': targetWeight,
+      'workoutSessionsPerWeek': workoutSessionsPerWeek,
     };
   }
 
@@ -68,6 +80,9 @@ class MemberProfileModel {
     String? activityLevel,
     String? preferredWorkoutTime,
     String? bio,
+    String? avatarUrl,
+    double? targetWeight,
+    int? workoutSessionsPerWeek,
   }) {
     return MemberProfileModel(
       fullName: fullName ?? this.fullName,
@@ -81,6 +96,9 @@ class MemberProfileModel {
       activityLevel: activityLevel ?? this.activityLevel,
       preferredWorkoutTime: preferredWorkoutTime ?? this.preferredWorkoutTime,
       bio: bio ?? this.bio,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      targetWeight: targetWeight ?? this.targetWeight,
+      workoutSessionsPerWeek: workoutSessionsPerWeek ?? this.workoutSessionsPerWeek,
     );
   }
 }

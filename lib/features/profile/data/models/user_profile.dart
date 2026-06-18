@@ -11,6 +11,9 @@ class UserProfile {
   String activityLevel;
   String preferredTimeSlot;
   String bio;
+  String? avatarUrl;
+  double? targetWeight;
+  int? workoutSessionsPerWeek;
 
   UserProfile({
     required this.firstName,
@@ -25,6 +28,9 @@ class UserProfile {
     required this.activityLevel,
     required this.preferredTimeSlot,
     required this.bio,
+    this.avatarUrl,
+    this.targetWeight,
+    this.workoutSessionsPerWeek,
   });
 
   String get initials {
@@ -52,6 +58,9 @@ class UserProfile {
     String? activityLevel,
     String? preferredTimeSlot,
     String? bio,
+    String? avatarUrl,
+    double? targetWeight,
+    int? workoutSessionsPerWeek,
   }) {
     return UserProfile(
       firstName: firstName ?? this.firstName,
@@ -66,6 +75,9 @@ class UserProfile {
       activityLevel: activityLevel ?? this.activityLevel,
       preferredTimeSlot: preferredTimeSlot ?? this.preferredTimeSlot,
       bio: bio ?? this.bio,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      targetWeight: targetWeight ?? this.targetWeight,
+      workoutSessionsPerWeek: workoutSessionsPerWeek ?? this.workoutSessionsPerWeek,
     );
   }
 }

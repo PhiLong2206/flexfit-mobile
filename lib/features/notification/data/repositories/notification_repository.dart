@@ -17,4 +17,12 @@ class NotificationRepository {
         )
         .toList();
   }
+
+  Future<void> readNotification(String id) async {
+    await _apiClient.patch('/notifications/$id/read');
+  }
+
+  Future<void> readAllNotifications() async {
+    await _apiClient.patch('/notifications/read-all');
+  }
 }

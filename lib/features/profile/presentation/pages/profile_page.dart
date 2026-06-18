@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/local_storage.dart';
 import '../../../booking/presentation/pages/booking_history_page.dart';
+import '../../../workout/presentation/pages/workout_history_page.dart';
+import '../../../workout/presentation/pages/workout_statistics_page.dart';
 import '../../data/profile_notifier.dart';
 import '../widgets/health_goal_form.dart';
 import '../widgets/personal_info_form.dart';
@@ -204,6 +206,84 @@ class _ProfileMenuCard extends StatelessWidget {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => const BookingHistoryPage(),
+                ),
+              );
+            },
+          ),
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: Colors.white.withValues(alpha: 0.05),
+          ),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 2),
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.fitness_center_rounded,
+                color: Colors.blue,
+                size: 20,
+              ),
+            ),
+            title: const Text(
+              'Lịch sử tập luyện',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            trailing: const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textSecondary,
+            ),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const WorkoutHistoryPage(),
+                ),
+              );
+            },
+          ),
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: Colors.white.withValues(alpha: 0.05),
+          ),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 2),
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.analytics_outlined,
+                color: Colors.green,
+                size: 20,
+              ),
+            ),
+            title: const Text(
+              'Thống kê thể chất',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            trailing: const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textSecondary,
+            ),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const WorkoutStatisticsPage(),
                 ),
               );
             },

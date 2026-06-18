@@ -18,6 +18,8 @@ class _HealthGoalFormState extends State<HealthGoalForm>
   DateTime? _selectedBirthDate;
   late TextEditingController _heightController;
   late TextEditingController _weightController;
+  late TextEditingController _targetWeightController;
+  late TextEditingController _workoutSessionsController;
   late String _selectedGoal;
   late String _selectedActivityLevel;
   late String _selectedPreferredTime;
@@ -62,6 +64,10 @@ class _HealthGoalFormState extends State<HealthGoalForm>
         text: profile.height.toString().replaceAll('.', ','));
     _weightController =
         TextEditingController(text: profile.weight.toStringAsFixed(0));
+    _targetWeightController = TextEditingController(
+        text: (profile.targetWeight ?? profile.weight).toStringAsFixed(0));
+    _workoutSessionsController = TextEditingController(
+        text: (profile.workoutSessionsPerWeek ?? 3).toString());
     _selectedGoal = _goals.contains(profile.fitnessGoal)
         ? profile.fitnessGoal
         : _goals.first;
@@ -83,6 +89,8 @@ class _HealthGoalFormState extends State<HealthGoalForm>
       _selectedBirthDate = profile.birthDate;
       _heightController.text = profile.height.toString().replaceAll('.', ',');
       _weightController.text = profile.weight.toStringAsFixed(0);
+      _targetWeightController.text = (profile.targetWeight ?? profile.weight).toStringAsFixed(0);
+      _workoutSessionsController.text = (profile.workoutSessionsPerWeek ?? 3).toString();
       _selectedGoal = _goals.contains(profile.fitnessGoal)
           ? profile.fitnessGoal
           : _goals.first;
@@ -101,6 +109,8 @@ class _HealthGoalFormState extends State<HealthGoalForm>
     _profileNotifier.removeListener(_onProfileChanged);
     _heightController.dispose();
     _weightController.dispose();
+    _targetWeightController.dispose();
+    _workoutSessionsController.dispose();
     _bioController.dispose();
     super.dispose();
   }
@@ -141,40 +151,63 @@ class _HealthGoalFormState extends State<HealthGoalForm>
   Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
-    await Future<void>.delayed(const Duration(seconds: 1));
-    if (!mounted) return;
-    final heightText = _heightController.text.trim().replaceAll(',', '.');
-    final weightText = _weightController.text.trim().replaceAll(',', '.');
-    final height = double.tryParse(heightText) ?? 0.0;
-    final weight = double.tryParse(weightText) ?? 0.0;
-    context.read<ProfileNotifier>().updateHealthGoal(
-          gender: _selectedGender,
-          birthDate: _selectedBirthDate,
-          height: height,
-          weight: weight,
-          fitnessGoal: _selectedGoal,
-          activityLevel: _selectedActivityLevel,
-          preferredTimeSlot: _selectedPreferredTime,
-          bio: _bioController.text.trim(),
-        );
-    setState(() => _isSaving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle_rounded, color: Colors.white),
-            SizedBox(width: 10),
-            Text(
-              'Đã lưu chỉ số sức khỏe & mục tiêu thành công!',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ],
+    try {
+      final heightText = _heightController.text.trim().replaceAll(',', '.');
+      final weightText = _weightController.text.trim().replaceAll(',', '.');
+      final targetWeightText = _targetWeightController.text.trim().replaceAll(',', '.');
+      final height = double.tryParse(heightText) ?? 0.0;
+      final weight = double.tryParse(weightText) ?? 0.0;
+      final targetWeight = double.tryParse(targetWeightText) ?? weight;
+      final sessions = int.tryParse(_workoutSessionsController.text.trim()) ?? 3;
+
+      await context.read<ProfileNotifier>().updateHealthGoal(
+            gender: _selectedGender,
+            birthDate: _selectedBirthDate,
+            height: height,
+            weight: weight,
+            fitnessGoal: _selectedGoal,
+            activityLevel: _selectedActivityLevel,
+            preferredTimeSlot: _selectedPreferredTime,
+            bio: _bioController.text.trim(),
+            targetWeight: targetWeight,
+            workoutSessionsPerWeek: sessions,
+          );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: Colors.white),
+              SizedBox(width: 10),
+              Text(
+                'Đã lưu chỉ số sức khỏe & mục tiêu thành công!',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.completed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        backgroundColor: AppColors.completed,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Lỗi khi lưu: $e',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          backgroundColor: AppColors.cancelled,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   @override
@@ -301,6 +334,46 @@ class _HealthGoalFormState extends State<HealthGoalForm>
                           double.tryParse(value.trim().replaceAll(',', '.'));
                       if (v == null) return 'Không hợp lệ';
                       if (v <= 0 || v >= 500) return 'Phải từ 0 đến 500';
+                      return null;
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _ProfileTextField(
+                    controller: _targetWeightController,
+                    label: 'Cân nặng mục tiêu (kg)',
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Yêu cầu điền cân nặng mục tiêu';
+                      }
+                      final v =
+                          double.tryParse(value.trim().replaceAll(',', '.'));
+                      if (v == null) return 'Không hợp lệ';
+                      if (v <= 0 || v >= 500) return 'Phải từ 0 đến 500';
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: _ProfileTextField(
+                    controller: _workoutSessionsController,
+                    label: 'Số buổi tập / tuần',
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Yêu cầu số buổi tập';
+                      }
+                      final v = int.tryParse(value.trim());
+                      if (v == null) return 'Không hợp lệ';
+                      if (v < 1 || v > 21) return 'Phải từ 1 đến 21';
                       return null;
                     },
                   ),

@@ -48,12 +48,14 @@ class ProfileNotifier extends ChangeNotifier {
     required String lastName,
     required String email,
     required String phone,
+    String? avatarUrl,
   }) async {
     final updated = _profile.copyWith(
       firstName: firstName,
       lastName: lastName,
       email: email,
       phone: phone,
+      avatarUrl: avatarUrl,
     );
     await _saveProfile(updated);
   }
@@ -67,6 +69,8 @@ class ProfileNotifier extends ChangeNotifier {
     required String activityLevel,
     required String preferredTimeSlot,
     required String bio,
+    double? targetWeight,
+    int? workoutSessionsPerWeek,
   }) async {
     final updated = _profile.copyWith(
       gender: gender,
@@ -77,6 +81,8 @@ class ProfileNotifier extends ChangeNotifier {
       activityLevel: activityLevel,
       preferredTimeSlot: preferredTimeSlot,
       bio: bio,
+      targetWeight: targetWeight,
+      workoutSessionsPerWeek: workoutSessionsPerWeek,
     );
     await _saveProfile(updated);
   }
@@ -99,6 +105,9 @@ class ProfileNotifier extends ChangeNotifier {
         activityLevel: updated.activityLevel,
         preferredWorkoutTime: updated.preferredTimeSlot,
         bio: updated.bio,
+        avatarUrl: updated.avatarUrl,
+        targetWeight: updated.targetWeight,
+        workoutSessionsPerWeek: updated.workoutSessionsPerWeek,
       );
       final savedModel = await _repository.updateMe(model);
       _profile = _mapFromMemberProfile(savedModel);
@@ -136,6 +145,9 @@ class ProfileNotifier extends ChangeNotifier {
       activityLevel: model.activityLevel ?? 'Hoạt động nhẹ',
       preferredTimeSlot: model.preferredWorkoutTime ?? 'Linh hoạt / Tự do',
       bio: model.bio ?? '',
+      avatarUrl: model.avatarUrl,
+      targetWeight: model.targetWeight ?? model.weightKg ?? 60.0,
+      workoutSessionsPerWeek: model.workoutSessionsPerWeek ?? 3,
     );
   }
 }
