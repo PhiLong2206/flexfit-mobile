@@ -1,68 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../data/models/credit_package_model.dart';
 import '../../data/repositories/credit_repository.dart';
+import '../providers/membership_provider.dart';
 
-class MembershipPage extends StatefulWidget {
+class MembershipPage extends StatelessWidget {
   const MembershipPage({super.key});
 
   @override
-  State<MembershipPage> createState() => _MembershipPageState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => MembershipProvider(CreditRepository())..loadData(),
+      child: const _MembershipView(),
+    );
+  }
 }
 
-class _MembershipPageState extends State<MembershipPage> {
+class _MembershipView extends StatelessWidget {
+  const _MembershipView();
+
   static const Color _backgroundColor = Color(0xFF070B14);
   static const Color _cardColor = Color(0xFF111827);
   static const Color _primaryOrange = Color(0xFFFF6B16);
 
-  final _repository = CreditRepository();
-  late Future<_MembershipData> _future;
-  String? _buyingPackageId;
-
-  @override
-  void initState() {
-    super.initState();
-    _future = _load();
-  }
-
-  Future<_MembershipData> _load() async {
-    final results = await Future.wait([
-      _repository.getMyCredit(),
-      _repository.getPackages(),
-    ]);
-    return _MembershipData(
-      credit: results[0] as UserCreditModel,
-      packages: results[1] as List<CreditPackageModel>,
-    );
-  }
-
-  void _reload() {
-    setState(() => _future = _load());
-  }
-
-  Future<void> _buy(CreditPackageModel package) async {
-    setState(() => _buyingPackageId = package.id);
-    try {
-      await _repository.buyPackage(package.id);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Mua ${package.name} thành công.')),
-      );
-      _reload();
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
-    } finally {
-      if (mounted) {
-        setState(() => _buyingPackageId = null);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<MembershipProvider>();
+
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
@@ -70,47 +35,72 @@ class _MembershipPageState extends State<MembershipPage> {
         backgroundColor: _backgroundColor,
       ),
       body: SafeArea(
-        child: FutureBuilder<_MembershipData>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return _StateMessage(
-                title: 'Không tải được thông tin thành viên',
-                message: snapshot.error.toString(),
-                onRetry: _reload,
+        child: Builder(
+          builder: (context) {
+            if (provider.isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(color: _primaryOrange),
               );
             }
 
-            final data = snapshot.data!;
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-              children: [
-                _CreditHeader(credit: data.credit),
-                const SizedBox(height: 18),
-                const Text(
-                  'Gói Credit',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (data.packages.isEmpty)
-                  const _EmptyPackages()
-                else
-                  for (final package in data.packages) ...[
-                    _PackageCard(
-                      package: package,
-                      isBuying: _buyingPackageId == package.id,
-                      onBuy: () => _buy(package),
+            if (provider.error != null && provider.credit == null) {
+              return _StateMessage(
+                title: 'Không tải được thông tin thành viên',
+                message: provider.error!,
+                onRetry: () {
+                  context.read<MembershipProvider>().loadData();
+                },
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: () {
+                return context.read<MembershipProvider>().loadData();
+              },
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                children: [
+                  _CreditHeader(credit: provider.credit),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Gói Credit',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
                     ),
-                    const SizedBox(height: 12),
-                  ],
-              ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (provider.packages.isEmpty)
+                    const _EmptyPackages()
+                  else
+                    for (final package in provider.packages) ...[
+                      _PackageCard(
+                        package: package,
+                        isBuying:
+                        provider.buyingPackageId == package.id,
+                        onBuy: () async {
+                          final success = await context
+                              .read<MembershipProvider>()
+                              .buyPackage(package.id);
+
+                          if (!context.mounted) return;
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                success
+                                    ? 'Mua ${package.name} thành công.'
+                                    : provider.error ?? 'Mua gói thất bại.',
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                ],
+              ),
             );
           },
         ),
@@ -122,7 +112,7 @@ class _MembershipPageState extends State<MembershipPage> {
 class _CreditHeader extends StatelessWidget {
   const _CreditHeader({required this.credit});
 
-  final UserCreditModel credit;
+  final UserCreditModel? credit;
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +120,7 @@ class _CreditHeader extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _MembershipPageState._cardColor,
+        color: _MembershipView._cardColor,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
@@ -138,7 +128,7 @@ class _CreditHeader extends StatelessWidget {
         children: [
           const Icon(
             Icons.workspace_premium_rounded,
-            color: _MembershipPageState._primaryOrange,
+            color: _MembershipView._primaryOrange,
             size: 34,
           ),
           const SizedBox(width: 14),
@@ -147,7 +137,7 @@ class _CreditHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${credit.balance} Credit',
+                  '${credit?.balance ?? 0} Credit',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -156,7 +146,7 @@ class _CreditHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Đã nhận ${credit.totalEarned} - Đã dùng ${credit.totalSpent}',
+                  'Đã nhận ${credit?.totalEarned ?? 0} - Đã dùng ${credit?.totalSpent ?? 0}',
                   style: const TextStyle(
                     color: Colors.white70,
                     fontWeight: FontWeight.w600,
@@ -187,11 +177,11 @@ class _PackageCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: _MembershipPageState._cardColor,
+        color: _MembershipView._cardColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: package.isPopular
-              ? _MembershipPageState._primaryOrange
+              ? _MembershipView._primaryOrange
               : Colors.white.withValues(alpha: 0.06),
         ),
       ),
@@ -213,7 +203,7 @@ class _PackageCard extends StatelessWidget {
               if (package.isPopular)
                 const Icon(
                   Icons.local_fire_department_rounded,
-                  color: _MembershipPageState._primaryOrange,
+                  color: _MembershipView._primaryOrange,
                 ),
             ],
           ),
@@ -228,7 +218,7 @@ class _PackageCard extends StatelessWidget {
               Text(
                 '${package.creditAmount} Credit',
                 style: const TextStyle(
-                  color: _MembershipPageState._primaryOrange,
+                  color: _MembershipView._primaryOrange,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -282,7 +272,7 @@ class _StateMessage extends StatelessWidget {
           children: [
             const Icon(
               Icons.wifi_off_rounded,
-              color: _MembershipPageState._primaryOrange,
+              color: _MembershipView._primaryOrange,
               size: 42,
             ),
             const SizedBox(height: 12),
@@ -302,17 +292,13 @@ class _StateMessage extends StatelessWidget {
               style: const TextStyle(color: Colors.white70),
             ),
             const SizedBox(height: 16),
-            FilledButton(onPressed: onRetry, child: const Text('Thử lại')),
+            FilledButton(
+              onPressed: onRetry,
+              child: const Text('Thử lại'),
+            ),
           ],
         ),
       ),
     );
   }
-}
-
-class _MembershipData {
-  const _MembershipData({required this.credit, required this.packages});
-
-  final UserCreditModel credit;
-  final List<CreditPackageModel> packages;
 }
