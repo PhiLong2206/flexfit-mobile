@@ -6,16 +6,35 @@ import '../widgets/featured_gym_section.dart';
 import '../widgets/home_header.dart';
 import '../widgets/home_quick_stats_row.dart';
 import '../widgets/hero_banner.dart';
-import '../../../booking/presentation/pages/my_bookings_page.dart';
+import '../../../booking/presentation/pages/booking_history_page.dart';
 import '../../../gym/presentation/pages/explore_page.dart';
 import '../../../membership/presentation/pages/membership_page.dart';
 import 'dashboard_page.dart';
+import '../../../profile/presentation/pages/profile_page.dart';
+import '../../../profile/data/profile_notifier.dart';
+import '../../../profile/data/booking_notifier.dart';
+import 'package:provider/provider.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   static const String routeName = '/home';
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
   static const Color _backgroundColor = Color(0xFF070B14);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProfileNotifier>().fetchProfile();
+      context.read<BookingNotifier>().fetchBookings();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +111,9 @@ class _HomeBottomNavigationBar extends StatelessWidget {
               label: 'Khám phá',
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const ExplorePage()),
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ExplorePage(),
+                  ),
                 );
               },
             ),
@@ -102,7 +123,7 @@ class _HomeBottomNavigationBar extends StatelessWidget {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => const MyBookingsPage(),
+                    builder: (_) => const BookingHistoryPage(),
                   ),
                 );
               },
@@ -114,6 +135,17 @@ class _HomeBottomNavigationBar extends StatelessWidget {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => const MembershipPage(),
+                  ),
+                );
+              },
+            ),
+            _BottomNavItem(
+              icon: Icons.person_rounded,
+              label: 'Hồ sơ',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ProfilePage(),
                   ),
                 );
               },
@@ -145,8 +177,8 @@ class _BottomNavItem extends StatelessWidget {
     final color = isActive ? _primaryOrange : Colors.white54;
 
     return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

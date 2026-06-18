@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../profile/data/profile_notifier.dart';
+import '../../../profile/presentation/pages/profile_page.dart';
 
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key});
@@ -53,21 +56,29 @@ class HomeHeader extends StatelessWidget {
             onTap: () {},
           ),
           const SizedBox(width: 10),
-          Container(
-            height: 42,
-            width: 42,
-            decoration: BoxDecoration(
-              color: _cardColor,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              'DR',
-              style: textTheme.labelLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0,
+          InkWell(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const ProfilePage()),
+              );
+            },
+            borderRadius: BorderRadius.circular(999),
+            child: Container(
+              height: 42,
+              width: 42,
+              decoration: BoxDecoration(
+                color: _cardColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                context.watch<ProfileNotifier>().profile.initials,
+                style: textTheme.labelLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0,
+                ),
               ),
             ),
           ),

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import '../../../booking/data/repositories/booking_repository.dart';
 import '../../../booking/data/models/booking_model.dart';
 import '../../../booking/presentation/pages/my_bookings_page.dart';
+import '../../../booking/presentation/pages/booking_history_page.dart';
 import '../../../gym/presentation/pages/explore_page.dart';
 import '../../../membership/data/repositories/credit_repository.dart';
 import '../../../membership/data/models/credit_package_model.dart';
 import '../../../membership/presentation/pages/membership_page.dart';
 import '../../../../core/services/local_storage.dart';
+import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../ai/data/models/ai_suggestion_model.dart';
 import '../../../ai/data/repositories/ai_repository.dart';
 import '../../../ai/presentation/pages/ai_chat_page.dart';
@@ -875,7 +877,7 @@ class _DashboardBottomNavigationBar extends StatelessWidget {
               onTap: () {
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute<void>(
-                    builder: (_) => const MyBookingsPage(),
+                    builder: (_) => const BookingHistoryPage(),
                   ),
                 );
               },
@@ -887,6 +889,17 @@ class _DashboardBottomNavigationBar extends StatelessWidget {
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute<void>(
                     builder: (_) => const MembershipPage(),
+                  ),
+                );
+              },
+            ),
+            _DashboardBottomNavItem(
+              icon: Icons.person_rounded,
+              label: 'Hồ sơ',
+              onTap: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ProfilePage(),
                   ),
                 );
               },
