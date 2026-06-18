@@ -5,11 +5,28 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/models/booking_model.dart';
 import '../widgets/booking_theme.dart';
+import '../widgets/review_bottom_sheet.dart';
 
-class BookingDetailPage extends StatelessWidget {
-  const BookingDetailPage({super.key, required this.booking});
+class BookingDetailPage extends StatefulWidget {
+  const BookingDetailPage({super.key, required this.booking, this.onReviewed});
 
   final BookingModel booking;
+  final VoidCallback? onReviewed;
+
+  @override
+  State<BookingDetailPage> createState() => _BookingDetailPageState();
+}
+
+class _BookingDetailPageState extends State<BookingDetailPage> {
+  late bool _hasReview;
+
+  BookingModel get booking => widget.booking;
+
+  @override
+  void initState() {
+    super.initState();
+    _hasReview = booking.hasReview;
+  }
 
   String get _typeLabel {
     return booking.type == BookingType.gym ? 'Gym' : 'Class';
@@ -87,6 +104,37 @@ class BookingDetailPage extends StatelessWidget {
       default:
         return booking.status.isEmpty ? 'Unknown' : booking.status;
     }
+  }
+
+  bool get _canReview => booking.canReview && !_hasReview;
+
+  Future<void> _openReviewSheet(BuildContext context) async {
+    if (!_canReview) {
+      return;
+    }
+    final result = await showModalBottomSheet<ReviewSheetResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ReviewBottomSheet(booking: booking),
+    );
+    if (result == null || !context.mounted) {
+      return;
+    }
+    setState(() => _hasReview = true);
+    widget.onReviewed?.call();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result == ReviewSheetResult.submitted
+              ? 'Cảm ơn bạn! Đánh giá đã được ghi nhận.'
+              : 'Lịch này đã được đánh giá trước đó.',
+        ),
+        backgroundColor: const Color(0xFF22C55E),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   Future<void> _copyCode(BuildContext context) async {
@@ -213,6 +261,13 @@ class BookingDetailPage extends StatelessWidget {
                       ),
                   ],
                 ),
+                if (_hasReview || _canReview) ...[
+                  const SizedBox(height: 16),
+                  _ReviewActionCard(
+                    hasReview: _hasReview,
+                    onReview: () => _openReviewSheet(context),
+                  ),
+                ],
               ],
             ),
           ),
@@ -227,6 +282,53 @@ class BookingDetailPage extends StatelessWidget {
     final hour = value.hour.toString().padLeft(2, '0');
     final minute = value.minute.toString().padLeft(2, '0');
     return '$day/$month/${value.year} $hour:$minute';
+  }
+}
+
+class _ReviewActionCard extends StatelessWidget {
+  const _ReviewActionCard({required this.hasReview, required this.onReview});
+
+  final bool hasReview;
+  final VoidCallback onReview;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration(),
+      child: Row(
+        children: [
+          Container(
+            height: 42,
+            width: 42,
+            decoration: BoxDecoration(
+              color: BookingTheme.primary.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              hasReview
+                  ? Icons.check_circle_rounded
+                  : Icons.rate_review_rounded,
+              color: hasReview ? const Color(0xFF22C55E) : BookingTheme.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              hasReview ? 'Bạn đã đánh giá lịch này' : 'Đánh giá buổi tập',
+              style: const TextStyle(
+                color: BookingTheme.text,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: hasReview ? null : onReview,
+            child: Text(hasReview ? 'Đã gửi' : 'Đánh giá'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

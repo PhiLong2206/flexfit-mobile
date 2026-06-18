@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/api_client.dart';
+import '../../../profile/data/repositories/profile_repository.dart';
+import '../../data/credit_refresh_notifier.dart';
 import '../../data/models/credit_package_model.dart';
 import '../../data/repositories/credit_repository.dart';
 import '../../data/repositories/payment_repository.dart';
@@ -23,8 +27,11 @@ class _MembershipPageState extends State<MembershipPage>
 
   final _creditRepository = CreditRepository();
   final _paymentRepository = PaymentRepository();
+  final _profileRepository = ProfileRepository();
+
   late Future<_MembershipData> _future;
   String? _buyingPackageId;
+  String? _pendingPaymentId;
   bool _shouldRefreshOnResume = false;
 
   @override
@@ -44,7 +51,7 @@ class _MembershipPageState extends State<MembershipPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _shouldRefreshOnResume) {
       _shouldRefreshOnResume = false;
-      _reload();
+      unawaited(_refreshAfterPayment(showDialogs: true));
     }
   }
 
@@ -75,6 +82,17 @@ class _MembershipPageState extends State<MembershipPage>
       return;
     }
 
+    final confirmed = await _confirmPayment(package);
+    if (!mounted) {
+      return;
+    }
+    if (confirmed != true) {
+      await _showPaymentCancelledDialog(
+        message: 'Bạn đã huỷ thanh toán cho gói Credit này.',
+      );
+      return;
+    }
+
     setState(() => _buyingPackageId = package.id);
     try {
       final payment = await _paymentRepository.createPayment(
@@ -85,15 +103,18 @@ class _MembershipPageState extends State<MembershipPage>
         throw const ApiException('Backend chưa trả về liên kết thanh toán.');
       }
 
+      _pendingPaymentId = payment.paymentId;
       final resolvedUrl = _paymentRepository.resolvePaymentUrl(paymentUrl);
-      final uri = Uri.parse(resolvedUrl);
-      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      final opened = await launchUrl(
+        Uri.parse(resolvedUrl),
+        mode: LaunchMode.externalApplication,
+      );
       if (!opened) {
         throw const ApiException('Không mở được liên kết thanh toán.');
       }
 
       _shouldRefreshOnResume = true;
-      _reload();
+      await _refreshAfterPayment(showDialogs: false);
       if (!mounted) {
         return;
       }
@@ -108,14 +129,182 @@ class _MembershipPageState extends State<MembershipPage>
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_friendlyPaymentError(error))));
+      await _showPaymentFailedDialog(_friendlyPaymentError(error));
     } finally {
       if (mounted) {
         setState(() => _buyingPackageId = null);
       }
     }
+  }
+
+  Future<bool?> _confirmPayment(CreditPackageModel package) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: _cardColor,
+          title: Text(
+            'Nạp ${package.totalCredit} Credit?',
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+          content: Text(
+            '${package.name}\n${_formatCurrency(package.price)}',
+            style: const TextStyle(color: Colors.white70, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Huỷ'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Thanh toán'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _refreshAfterPayment({required bool showDialogs}) async {
+    final paymentId = _pendingPaymentId;
+    final status = paymentId == null
+        ? null
+        : await _findPaymentStatus(paymentId);
+
+    if (mounted) {
+      final future = _load();
+      setState(() => _future = future);
+      try {
+        await future;
+        CreditRefreshNotifier.instance.notifyCreditChanged();
+      } catch (_) {
+        if (showDialogs) {
+          return;
+        }
+      }
+    }
+
+    if (_isPaymentSuccess(status)) {
+      _pendingPaymentId = null;
+      await _reloadProfileQuietly();
+      if (showDialogs && mounted) {
+        await _showPaymentSuccessDialog();
+      }
+      return;
+    }
+
+    if (!showDialogs || !mounted) {
+      return;
+    }
+
+    if (_isPaymentCancelled(status)) {
+      _pendingPaymentId = null;
+      await _showPaymentCancelledDialog(
+        message:
+            'Giao dịch đã bị huỷ. Bạn có thể chọn lại gói Credit bất kỳ lúc nào.',
+      );
+    } else if (_isPaymentFailed(status)) {
+      _pendingPaymentId = null;
+      await _showPaymentFailedDialog(
+        'Thanh toán thất bại hoặc giao dịch chưa được xử lý thành công.',
+      );
+    }
+  }
+
+  Future<String?> _findPaymentStatus(String paymentId) async {
+    try {
+      final history = await _paymentRepository.getMyPaymentHistory();
+      for (final payment in history) {
+        if (payment.paymentId == paymentId) {
+          return payment.status;
+        }
+      }
+    } catch (_) {
+      // Payment history is optional; credit refresh still runs without it.
+    }
+    return null;
+  }
+
+  Future<void> _reloadProfileQuietly() async {
+    try {
+      await _profileRepository.getMe();
+    } catch (_) {
+      // Credit is the visible source of truth here; profile refresh should not
+      // block the payment completion UI.
+    }
+  }
+
+  Future<void> _showPaymentSuccessDialog() {
+    return _showResultDialog(
+      icon: Icons.check_circle_rounded,
+      iconColor: AppColors.completed,
+      title: 'Thanh toán thành công',
+      message: 'Credit và hồ sơ thành viên đã được cập nhật.',
+      buttonText: 'Đóng',
+    );
+  }
+
+  Future<void> _showPaymentFailedDialog(String message) {
+    return _showResultDialog(
+      icon: Icons.error_rounded,
+      iconColor: AppColors.cancelled,
+      title: 'Thanh toán thất bại',
+      message: message,
+      buttonText: 'Thử lại',
+    );
+  }
+
+  Future<void> _showPaymentCancelledDialog({required String message}) {
+    return _showResultDialog(
+      icon: Icons.cancel_rounded,
+      iconColor: Colors.white60,
+      title: 'Thanh toán đã huỷ',
+      message: message,
+      buttonText: 'Đóng',
+    );
+  }
+
+  Future<void> _showResultDialog({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String message,
+    required String buttonText,
+  }) {
+    if (!mounted) {
+      return Future.value();
+    }
+    return showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: _cardColor,
+          title: Row(
+            children: [
+              Icon(icon, color: iconColor),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(color: Colors.white70, height: 1.5),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(buttonText),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _openHistory() {
@@ -271,7 +460,7 @@ class _CreditHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Đã nhận ${credit.totalEarned} · Đã dùng ${credit.totalSpent}',
+                  'Đã nhận ${credit.totalEarned} - Đã dùng ${credit.totalSpent}',
                   style: const TextStyle(
                     color: Colors.white70,
                     fontWeight: FontWeight.w600,
@@ -365,6 +554,17 @@ class _PackageCard extends StatelessWidget {
               ? _MembershipPageState._primaryOrange
               : Colors.white.withValues(alpha: 0.06),
         ),
+        boxShadow: package.isPopular
+            ? [
+                BoxShadow(
+                  color: _MembershipPageState._primaryOrange.withValues(
+                    alpha: 0.12,
+                  ),
+                  blurRadius: 18,
+                  offset: const Offset(0, 10),
+                ),
+              ]
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,11 +581,7 @@ class _PackageCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (package.isPopular)
-                const Icon(
-                  Icons.local_fire_department_rounded,
-                  color: _MembershipPageState._primaryOrange,
-                ),
+              if (package.isPopular) const _PopularBadge(),
             ],
           ),
           const SizedBox(height: 8),
@@ -404,7 +600,7 @@ class _PackageCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                '+${package.bonusCredit} bonus · ${package.totalCredit} Credit',
+                '+${package.bonusCredit} bonus - ${package.totalCredit} Credit',
                 style: const TextStyle(
                   color: _MembershipPageState._primaryOrange,
                   fontSize: 12,
@@ -435,6 +631,43 @@ class _PackageCard extends StatelessWidget {
                     : Text(_formatCurrency(package.price)),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PopularBadge extends StatelessWidget {
+  const _PopularBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: _MembershipPageState._primaryOrange.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: _MembershipPageState._primaryOrange.withValues(alpha: 0.36),
+        ),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.local_fire_department_rounded,
+            color: _MembershipPageState._primaryOrange,
+            size: 14,
+          ),
+          SizedBox(width: 4),
+          Text(
+            'Phổ biến',
+            style: TextStyle(
+              color: _MembershipPageState._primaryOrange,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
       ),
@@ -519,6 +752,23 @@ class _MembershipData {
   final List<CreditPackageModel> packages;
 }
 
+bool _isPaymentSuccess(String? status) {
+  final value = status?.toLowerCase() ?? '';
+  return value.contains('success') || value.contains('paid');
+}
+
+bool _isPaymentCancelled(String? status) {
+  final value = status?.toLowerCase() ?? '';
+  return value.contains('cancel') ||
+      value.contains('huy') ||
+      value.contains('huỷ');
+}
+
+bool _isPaymentFailed(String? status) {
+  final value = status?.toLowerCase() ?? '';
+  return value.contains('fail') || value.contains('error');
+}
+
 String _friendlyPaymentError(Object error) {
   if (error is ApiException && error.statusCode == 401) {
     return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để thanh toán.';
@@ -536,5 +786,5 @@ String _formatCurrency(double value) {
       buffer.write('.');
     }
   }
-  return '${buffer.toString()}đ';
+  return '$bufferđ';
 }

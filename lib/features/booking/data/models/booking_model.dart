@@ -11,8 +11,11 @@ class BookingModel {
     required this.bookingCode,
     this.qrToken,
     required this.status,
+    required this.checkInStatus,
     required this.creditUsed,
     required this.type,
+    required this.hasReview,
+    this.reviewId,
   });
 
   final String id;
@@ -26,8 +29,42 @@ class BookingModel {
   final String bookingCode;
   final String? qrToken;
   final String status;
+  final String checkInStatus;
   final int creditUsed;
   final BookingType type;
+  final bool hasReview;
+  final String? reviewId;
+
+  bool get canReview {
+    if (hasReview) {
+      return false;
+    }
+    if (_isBlockedReviewStatus(status)) {
+      return false;
+    }
+    return _isReviewableStatus(status) || _isReviewableStatus(checkInStatus);
+  }
+
+  BookingModel copyWith({bool? hasReview, String? reviewId}) {
+    return BookingModel(
+      id: id,
+      title: title,
+      subtitle: subtitle,
+      gymName: gymName,
+      branchName: branchName,
+      branchAddress: branchAddress,
+      startTime: startTime,
+      endTime: endTime,
+      bookingCode: bookingCode,
+      qrToken: qrToken,
+      status: status,
+      checkInStatus: checkInStatus,
+      creditUsed: creditUsed,
+      type: type,
+      hasReview: hasReview ?? this.hasReview,
+      reviewId: reviewId ?? this.reviewId,
+    );
+  }
 
   factory BookingModel.fromGymJson(Map<String, dynamic> json) {
     final branchName = _readString(json, 'branchName');
@@ -48,9 +85,12 @@ class BookingModel {
       bookingCode: _readString(json, 'bookingCode') ?? '',
       qrToken: _readString(json, 'qrToken'),
       status: _readString(json, 'status') ?? '',
+      checkInStatus: _readString(json, 'checkInStatus') ?? '',
       creditUsed:
           int.tryParse(_read(json, 'creditUsed')?.toString() ?? '') ?? 0,
       type: BookingType.gym,
+      hasReview: _readBool(json, 'hasReview'),
+      reviewId: _readString(json, 'reviewId'),
     );
   }
 
@@ -73,9 +113,12 @@ class BookingModel {
       bookingCode: _readString(json, 'bookingCode') ?? '',
       qrToken: _readString(json, 'qrToken'),
       status: _readString(json, 'status') ?? '',
+      checkInStatus: _readString(json, 'checkInStatus') ?? '',
       creditUsed:
           int.tryParse(_read(json, 'creditUsed')?.toString() ?? '') ?? 0,
       type: BookingType.classBooking,
+      hasReview: _readBool(json, 'hasReview'),
+      reviewId: _readString(json, 'reviewId'),
     );
   }
 }
@@ -93,4 +136,34 @@ String? _readString(Map<String, dynamic> json, String key) {
     return null;
   }
   return value;
+}
+
+bool _readBool(Map<String, dynamic> json, String key) {
+  final value = _read(json, key);
+  if (value is bool) {
+    return value;
+  }
+  final text = value?.toString().toLowerCase();
+  return text == 'true' || text == '1';
+}
+
+bool _isReviewableStatus(String value) {
+  final normalized = value
+      .toLowerCase()
+      .replaceAll('-', '')
+      .replaceAll('_', '');
+  return normalized == 'completed' ||
+      normalized == 'checkedin' ||
+      normalized == 'finished';
+}
+
+bool _isBlockedReviewStatus(String value) {
+  final normalized = value
+      .toLowerCase()
+      .replaceAll('-', '')
+      .replaceAll('_', '');
+  return normalized == 'pending' ||
+      normalized == 'upcoming' ||
+      normalized == 'cancelled' ||
+      normalized == 'canceled';
 }

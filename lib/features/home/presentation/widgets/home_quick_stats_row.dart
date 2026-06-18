@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../membership/data/credit_refresh_notifier.dart';
 import '../../../membership/data/repositories/credit_repository.dart';
 
 class HomeQuickStatsRow extends StatefulWidget {
@@ -16,9 +17,25 @@ class _HomeQuickStatsRowState extends State<HomeQuickStatsRow> {
   @override
   void initState() {
     super.initState();
-    _creditFuture = _creditRepository.getMyCredit().then(
-      (credit) => credit.balance,
-    );
+    _creditFuture = _loadCredit();
+    CreditRefreshNotifier.instance.addListener(_reloadCredit);
+  }
+
+  @override
+  void dispose() {
+    CreditRefreshNotifier.instance.removeListener(_reloadCredit);
+    super.dispose();
+  }
+
+  Future<int> _loadCredit() {
+    return _creditRepository.getMyCredit().then((credit) => credit.balance);
+  }
+
+  void _reloadCredit() {
+    if (!mounted) {
+      return;
+    }
+    setState(() => _creditFuture = _loadCredit());
   }
 
   @override

@@ -27,6 +27,10 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
     await future;
   }
 
+  void _reload() {
+    setState(() => _future = _repository.getMyPaymentHistory());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,9 +52,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                 icon: Icons.receipt_long_rounded,
                 title: 'Không tải được lịch sử thanh toán',
                 message: snapshot.error.toString(),
-                onRetry: () {
-                  setState(() => _future = _repository.getMyPaymentHistory());
-                },
+                onRetry: _reload,
               );
             }
 
@@ -135,7 +137,7 @@ class _PaymentHistoryCard extends StatelessWidget {
                       [
                         payment.paymentMethod ?? 'PAYOS',
                         if (date != null) _formatDate(date),
-                      ].join(' · '),
+                      ].join(' - '),
                       style: const TextStyle(color: Colors.white60),
                     ),
                   ],
@@ -307,7 +309,7 @@ String _statusLabel(String status) {
     return 'Thất bại';
   }
   if (value.contains('cancel')) {
-    return 'Đã hủy';
+    return 'Đã huỷ';
   }
   return 'Đang xử lý';
 }
@@ -322,7 +324,7 @@ String _formatCurrency(double value) {
       buffer.write('.');
     }
   }
-  return '${buffer.toString()}đ';
+  return '$bufferđ';
 }
 
 String _formatDate(DateTime value) {

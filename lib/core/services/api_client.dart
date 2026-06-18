@@ -6,10 +6,11 @@ import 'api_transport_factory.dart';
 import 'local_storage.dart';
 
 class ApiException implements Exception {
-  const ApiException(this.message, {this.statusCode});
+  const ApiException(this.message, {this.statusCode, this.body});
 
   final String message;
   final int? statusCode;
+  final String? body;
 
   @override
   String toString() => message;
@@ -64,6 +65,7 @@ class ApiClient {
       throw ApiException(
         _extractError(decoded, responseText),
         statusCode: response.statusCode,
+        body: responseText,
       );
     }
 

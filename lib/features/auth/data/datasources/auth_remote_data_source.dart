@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../../core/services/api_client.dart';
 import '../models/auth_session_model.dart';
 
@@ -21,13 +23,22 @@ class AuthRemoteDataSource {
   }
 
   Future<AuthSessionModel> googleLogin({required String idToken}) async {
-    final response = await _apiClient.post(
-      '/Auth/google-login',
-      body: {'idToken': idToken},
-    );
-    return AuthSessionModel.fromJson(
-      Map<String, dynamic>.from(response as Map),
-    );
+    try {
+      final response = await _apiClient.post(
+        '/Auth/google-login',
+        body: {'idToken': idToken},
+      );
+      return AuthSessionModel.fromJson(
+        Map<String, dynamic>.from(response as Map),
+      );
+    } catch (error) {
+      if (error is ApiException && error.body?.isNotEmpty == true) {
+        debugPrint('Backend Google login failed: ${error.body}');
+      } else {
+        debugPrint('Backend Google login failed: $error');
+      }
+      rethrow;
+    }
   }
 
   Future<void> register({

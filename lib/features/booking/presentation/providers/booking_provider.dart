@@ -214,11 +214,11 @@ class BookingProvider extends ChangeNotifier {
       final value = booking.status.toLowerCase();
       switch (status) {
         case BookingStatus.upcoming:
-          return value == 'booked' ||
-              value == 'pending' ||
-              value == 'confirmed';
+          return !_isCompletedLike(booking.checkInStatus) &&
+              (value == 'booked' || value == 'pending' || value == 'confirmed');
         case BookingStatus.completed:
-          return value == 'completed';
+          return _isCompletedLike(value) ||
+              _isCompletedLike(booking.checkInStatus);
         case BookingStatus.cancelled:
           return value == 'cancelled' || value == 'canceled';
       }
@@ -239,6 +239,17 @@ class BookingProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> markBookingReviewed(BookingModel booking) async {
+    _bookings = _bookings.map((item) {
+      if (item.id != booking.id || item.type != booking.type) {
+        return item;
+      }
+      return item.copyWith(hasReview: true);
+    }).toList();
+    notifyListeners();
+    await fetchBookings(force: true);
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     if (value) {
@@ -246,6 +257,16 @@ class BookingProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
+}
+
+bool _isCompletedLike(String value) {
+  final normalized = value
+      .toLowerCase()
+      .replaceAll('-', '')
+      .replaceAll('_', '');
+  return normalized == 'completed' ||
+      normalized == 'checkedin' ||
+      normalized == 'finished';
 }
 
 class _TimeOfDayValue {

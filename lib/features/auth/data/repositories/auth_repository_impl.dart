@@ -34,10 +34,9 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<AuthSession> googleLogin() async {
     final clientId = AppConstants.googleClientId.trim();
+    debugPrint("Google ClientId used: $clientId");
     if (clientId.isEmpty) {
-      throw const GoogleLoginException(
-        'Google đăng nhập chưa được cấu hình.',
-      );
+      throw const GoogleLoginException('Google đăng nhập chưa được cấu hình.');
     }
 
     if (kDebugMode) {
@@ -48,6 +47,10 @@ class AuthRepositoryImpl implements AuthRepository {
       clientId: clientId,
     );
     debugPrint('Google token received');
+    return googleLoginWithIdToken(idToken);
+  }
+
+  Future<AuthSession> googleLoginWithIdToken(String idToken) async {
     debugPrint('Sending Google token to backend');
     final session = await _remoteDataSource.googleLogin(idToken: idToken);
     await LocalStorage.saveToken(session.token);

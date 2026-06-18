@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -5,6 +7,7 @@ import '../../../profile/data/models/booking_item.dart';
 import '../../data/models/booking_model.dart';
 import '../pages/booking_detail_page.dart';
 import '../providers/booking_provider.dart';
+import 'review_bottom_sheet.dart';
 
 class BookingCard extends StatelessWidget {
   final BookingModel booking;
@@ -67,7 +70,45 @@ class BookingCard extends StatelessWidget {
   void _openDetail(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => BookingDetailPage(booking: booking),
+        builder: (_) => BookingDetailPage(
+          booking: booking,
+          onReviewed: () {
+            unawaited(
+              context.read<BookingProvider>().markBookingReviewed(booking),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openReviewSheet(BuildContext context) async {
+    if (!booking.canReview) {
+      return;
+    }
+    final result = await showModalBottomSheet<ReviewSheetResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ReviewBottomSheet(booking: booking),
+    );
+    if (result == null || !context.mounted) {
+      return;
+    }
+    await context.read<BookingProvider>().markBookingReviewed(booking);
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result == ReviewSheetResult.submitted
+              ? 'Cảm ơn bạn! Đánh giá đã được ghi nhận.'
+              : 'Lịch này đã được đánh giá trước đó.',
+        ),
+        backgroundColor: AppColors.completed,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -334,6 +375,43 @@ class BookingCard extends StatelessWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ] else if (booking.hasReview || booking.canReview) ...[
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: OutlinedButton.icon(
+                        onPressed: booking.hasReview
+                            ? null
+                            : () => _openReviewSheet(context),
+                        icon: Icon(
+                          booking.hasReview
+                              ? Icons.check_circle_rounded
+                              : Icons.rate_review_rounded,
+                          size: 16,
+                        ),
+                        label: Text(
+                          booking.hasReview ? 'Đã đánh giá' : 'Đánh giá',
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: booking.hasReview
+                              ? AppColors.textSecondary
+                              : AppColors.primary,
+                          side: BorderSide(
+                            color: booking.hasReview
+                                ? AppColors.border
+                                : AppColors.primary,
+                            width: 1.2,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                       ),
