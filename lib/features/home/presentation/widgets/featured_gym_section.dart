@@ -27,7 +27,9 @@ class _FeaturedGymSectionState extends State<FeaturedGymSection> {
   }
 
   void _reload() {
-    setState(() => _future = _repository.getGyms());
+    setState(() {
+      _future = _repository.getGyms();
+    });
   }
 
   @override

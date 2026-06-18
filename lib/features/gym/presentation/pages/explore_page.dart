@@ -58,7 +58,9 @@ class _ExplorePageState extends State<ExplorePage>
   }
 
   void _reload() {
-    setState(() => _future = _load());
+    setState(() {
+      _future = _load();
+    });
   }
 
   Future<void> _bookClass(

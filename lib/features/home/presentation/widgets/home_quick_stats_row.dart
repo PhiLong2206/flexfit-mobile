@@ -35,7 +35,9 @@ class _HomeQuickStatsRowState extends State<HomeQuickStatsRow> {
     if (!mounted) {
       return;
     }
-    setState(() => _creditFuture = _loadCredit());
+    setState(() {
+      _creditFuture = _loadCredit();
+    });
   }
 
   @override

@@ -40,13 +40,21 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    _authProvider.addListener(_handleAuthProviderChanged);
-    if (kIsWeb) {
-      _initializeGoogleSignInForWeb();
-      _googleAuthSubscription = GoogleSignIn.instance.authenticationEvents
-          .listen(_handleGoogleAuthEvent, onError: _handleGoogleAuthError);
+    debugPrint('LoginPage initState');
+
+    try {
+      _authProvider.addListener(_handleAuthProviderChanged);
+      if (kIsWeb) {
+        unawaited(_initializeGoogleSignInForWeb());
+        _googleAuthSubscription = GoogleSignIn.instance.authenticationEvents
+            .listen(_handleGoogleAuthEvent, onError: _handleGoogleAuthError);
+      }
+    } catch (error, stackTrace) {
+      debugPrint('LoginPage async init failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
     }
-    _loadRememberedCredentials();
+
+    unawaited(_loadRememberedCredentials());
   }
 
   @override
@@ -61,6 +69,13 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('LoginPage build start');
+    debugPrint(
+      kIsWeb
+          ? 'before rendering Google button: web'
+          : 'before rendering Google button: mobile',
+    );
+
     return Scaffold(
       backgroundColor: AuthTheme.background,
       body: SafeArea(
@@ -204,13 +219,18 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _loadRememberedCredentials() async {
-    final credentials = await LocalStorage.getRememberedCredentials();
-    if (!mounted) return;
-    setState(() {
-      _rememberMe = credentials.rememberMe;
-      _emailController.text = credentials.email;
-      _passwordController.text = credentials.password;
-    });
+    try {
+      final credentials = await LocalStorage.getRememberedCredentials();
+      if (!mounted) return;
+      setState(() {
+        _rememberMe = credentials.rememberMe;
+        _emailController.text = credentials.email;
+        _passwordController.text = credentials.password;
+      });
+    } catch (error, stackTrace) {
+      debugPrint('Loading remembered credentials failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
   }
 
   void _handleAuthProviderChanged() {

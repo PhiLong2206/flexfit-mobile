@@ -60,7 +60,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _reload() {
-    setState(() => _future = _load());
+    setState(() {
+      _future = _load();
+    });
   }
 
   Future<void> _save() async {

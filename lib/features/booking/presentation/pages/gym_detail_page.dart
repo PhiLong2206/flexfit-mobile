@@ -47,7 +47,9 @@ class _GymDetailPageState extends State<GymDetailPage> {
   void _reload() {
     final id = widget.gymId;
     if (id != null) {
-      setState(() => _future = _load(id));
+      setState(() {
+        _future = _load(id);
+      });
     }
   }
 

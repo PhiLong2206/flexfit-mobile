@@ -8,10 +8,20 @@ class AppConstants {
   AppConstants._();
 
   // API
-  static const String baseUrl = 'http://localhost:5023/api';
+  static const String webBaseUrl = 'http://localhost:5023/api';
 
-  // Android emulator fallback when localhost points at the device itself.
+  // For real Android phone, replace 10.0.2.2 with PC LAN IP, e.g. http://192.168.x.x:5023
   static const String androidEmulatorBaseUrl = 'http://10.0.2.2:5023/api';
+
+  static String get baseUrl {
+    if (kIsWeb) {
+      return webBaseUrl;
+    }
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return androidEmulatorBaseUrl;
+    }
+    return webBaseUrl;
+  }
 
   static const String _devGoogleClientId =
       '474979397544-i1gal4qaq4ftbejhn1gb96gdbfgobt25.apps.googleusercontent.com';

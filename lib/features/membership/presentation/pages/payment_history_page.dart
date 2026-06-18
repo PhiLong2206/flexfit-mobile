@@ -23,12 +23,16 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
 
   Future<void> _refresh() async {
     final future = _repository.getMyPaymentHistory();
-    setState(() => _future = future);
+    setState(() {
+      _future = future;
+    });
     await future;
   }
 
   void _reload() {
-    setState(() => _future = _repository.getMyPaymentHistory());
+    setState(() {
+      _future = _repository.getMyPaymentHistory();
+    });
   }
 
   @override

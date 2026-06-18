@@ -8,6 +8,7 @@ import '../datasources/auth_remote_data_source.dart';
 import '../services/google_auth_service.dart';
 import '../services/google_login_exception.dart';
 
+
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     AuthRemoteDataSource? remoteDataSource,
@@ -43,8 +44,10 @@ class AuthRepositoryImpl implements AuthRepository {
       debugPrint('Google OAuth origin: ${AppConstants.googleOAuthOrigin}');
     }
     debugPrint('Starting Google sign in');
-    final idToken = await _googleAuthService.signInAndGetIdToken(
-      clientId: clientId,
+    final idToken = kIsWeb
+        ? await _googleAuthService.signInAndGetIdToken(clientId: clientId)
+        : await _googleAuthService.signInAndGetIdToken(
+      clientId: AppConstants.googleClientId,
     );
     debugPrint('Google token received');
     return googleLoginWithIdToken(idToken);

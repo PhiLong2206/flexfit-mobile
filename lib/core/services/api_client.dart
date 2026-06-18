@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import '../constants/app_constants.dart';
 import 'api_transport.dart';
 import 'api_transport_factory.dart';
@@ -19,7 +21,9 @@ class ApiException implements Exception {
 class ApiClient {
   ApiClient({String? baseUrl, Object? httpClient, ApiTransport? transport})
     : _baseUrl = baseUrl ?? AppConstants.baseUrl,
-      _transport = transport ?? createApiTransport(httpClient);
+      _transport = transport ?? createApiTransport(httpClient) {
+    debugPrint('API Base URL: $_baseUrl');
+  }
 
   final String _baseUrl;
   final ApiTransport _transport;

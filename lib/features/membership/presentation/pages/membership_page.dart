@@ -68,12 +68,16 @@ class _MembershipPageState extends State<MembershipPage>
     if (!mounted) {
       return;
     }
-    setState(() => _future = _load());
+    setState(() {
+      _future = _load();
+    });
   }
 
   Future<void> _refresh() async {
     final future = _load();
-    setState(() => _future = future);
+    setState(() {
+      _future = future;
+    });
     await future;
   }
 
@@ -174,7 +178,9 @@ class _MembershipPageState extends State<MembershipPage>
 
     if (mounted) {
       final future = _load();
-      setState(() => _future = future);
+      setState(() {
+        _future = future;
+      });
       try {
         await future;
         CreditRefreshNotifier.instance.notifyCreditChanged();
