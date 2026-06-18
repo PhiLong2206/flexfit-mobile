@@ -9,7 +9,7 @@ import '../widgets/hero_banner.dart';
 import '../../../booking/presentation/pages/my_bookings_page.dart';
 import '../../../gym/presentation/pages/explore_page.dart';
 import '../../../membership/presentation/pages/membership_page.dart';
-import '../../../profile/presentation/pages/profile_page.dart';
+import 'dashboard_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -76,6 +76,18 @@ class _HomeBottomNavigationBar extends StatelessWidget {
               isActive: true,
             ),
             _BottomNavItem(
+              icon: Icons.dashboard_rounded,
+              label: 'Bảng điều khiển',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    settings: const RouteSettings(name: DashboardPage.routeName),
+                    builder: (_) => const DashboardPage(),
+                  ),
+                );
+              },
+            ),
+            _BottomNavItem(
               icon: Icons.explore_rounded,
               label: 'Khám phá',
               onTap: () {
@@ -103,15 +115,6 @@ class _HomeBottomNavigationBar extends StatelessWidget {
                   MaterialPageRoute<void>(
                     builder: (_) => const MembershipPage(),
                   ),
-                );
-              },
-            ),
-            _BottomNavItem(
-              icon: Icons.person_rounded,
-              label: 'Hồ sơ',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const ProfilePage()),
                 );
               },
             ),
