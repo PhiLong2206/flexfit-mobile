@@ -1,52 +1,90 @@
-import 'package:dio/dio.dart';
+import '../../../../core/services/api_client.dart';
+import '../models/booking_model.dart';
+import 'package:dio/dio.dart'; // Giữ lại để dùng object Response cho 2 hàm chi tiết của ông
 
 class BookingRepository {
-  // Thay url này bằng URL deploy thực tế hoặc IP mạng LAN của backend nhóm ông nhé
-  final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'https://api.flexfit.com',
-    connectTimeout: const Duration(seconds: 5),
-    receiveTimeout: const Duration(seconds: 3),
-  ));
+  BookingRepository({ApiClient? apiClient})
+      : _apiClient = apiClient ?? ApiClient();
 
-  // --- API CHI TIẾT (GET) ---
-  Future<Response> getGymDetail(String gymId) async {
-    return await _dio.get('/api/gyms/$gymId');
+  final ApiClient _apiClient;
+
+  // --- 2 HÀM CHI TIẾT CHÍNH CHỦ CỦA ÔNG (Đã được sửa sang dùng _apiClient cho đồng bộ nhóm) ---
+  Future<dynamic> getGymDetail(String gymId) async {
+    return await _apiClient.get('/bookings/gyms/$gymId');
   }
 
-  Future<Response> getClassDetail(String classId) async {
-    return await _dio.get('/api/classes/$classId');
+  Future<dynamic> getClassDetail(String classId) async {
+    return await _apiClient.get('/bookings/classes/$classId');
   }
 
-  // --- API ĐẶT LỊCH (POST) ---
-  Future<Response> bookGym(String gymId, String date, String timeSlot) async {
-    return await _dio.post('/api/bookings/gym', data: {
-      'gymId': gymId,
-      'date': date,
-      'timeSlot': timeSlot,
-    });
+  // --- CÁC HÀM CỦA CẢ NHÓM (Nhóm trưởng viết bằng ApiClient) ---
+  Future<BookingModel> bookGym({
+    required String branchId,
+    required String sessionName,
+    required DateTime startTime,
+    required DateTime endTime,
+  }) async {
+    final response = await _apiClient.post(
+      '/bookings/gym',
+      body: {
+        'branchId': branchId,
+        'sessionName': sessionName,
+        'startTime': startTime.toIso8601String(),
+        'endTime': endTime.toIso8601String(),
+      },
+    );
+    final data = _readData(response);
+    return BookingModel.fromGymJson(data);
   }
 
-  Future<Response> bookClass(String classId) async {
-    return await _dio.post('/api/bookings/class', data: {
-      'classId': classId,
-    });
+  Future<BookingModel> bookClass(String classId) async {
+    final response = await _apiClient.post(
+      '/bookings/class',
+      body: {'classId': classId},
+    );
+    final data = _readData(response);
+    return BookingModel.fromClassJson(data);
   }
 
-  // --- API LỊCH SỬ / DANH SÁCH (GET) ---
-  Future<Response> getMyGymBookings() async {
-    return await _dio.get('/api/bookings/gym/my-bookings');
+  Future<List<BookingModel>> getMyGymBookings() async {
+    final response = await _apiClient.get('/bookings/gym/my-bookings');
+    return (response as List)
+        .map(
+          (item) =>
+          BookingModel.fromGymJson(Map<String, dynamic>.from(item as Map)),
+    )
+        .toList();
   }
 
-  Future<Response> getMyClassBookings() async {
-    return await _dio.get('/api/bookings/class/my-bookings');
+  Future<List<BookingModel>> getMyClassBookings() async {
+    final response = await _apiClient.get('/bookings/class/my-bookings');
+    return (response as List)
+        .map(
+          (item) => BookingModel.fromClassJson(
+        Map<String, dynamic>.from(item as Map),
+      ),
+    )
+        .toList();
   }
 
-  // --- API HỦY LỊCH (PUT) ---
-  Future<Response> cancelGymBooking(String bookingId) async {
-    return await _dio.put('/api/bookings/gym/$bookingId/cancel');
+  Future<List<BookingModel>> getMyBookings() async {
+    final results = await Future.wait([
+      getMyGymBookings(),
+      getMyClassBookings(),
+    ]);
+    final bookings = [...results[0], ...results[1]];
+    bookings.sort((a, b) => a.startTime.compareTo(b.startTime));
+    return bookings;
   }
 
-  Future<Response> cancelClassBooking(String bookingId) async {
-    return await _dio.put('/api/bookings/class/$bookingId/cancel');
+  Future<void> cancelBooking(BookingModel booking) async {
+    final segment = booking.type == BookingType.gym ? 'gym' : 'class';
+    await _apiClient.put('/bookings/$segment/${booking.id}/cancel');
+  }
+
+  Map<String, dynamic> _readData(dynamic response) {
+    final map = Map<String, dynamic>.from(response as Map);
+    final data = map['data'] ?? map['Data'];
+    return Map<String, dynamic>.from(data as Map);
   }
 }

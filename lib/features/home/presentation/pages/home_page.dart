@@ -6,11 +6,34 @@ import '../widgets/featured_gym_section.dart';
 import '../widgets/home_header.dart';
 import '../widgets/home_quick_stats_row.dart';
 import '../widgets/hero_banner.dart';
+import '../../../booking/presentation/pages/booking_history_page.dart';
+import '../../../gym/presentation/pages/explore_page.dart';
+import '../../../membership/presentation/pages/membership_page.dart';
+import '../../../profile/presentation/pages/profile_page.dart';
+import '../../../profile/data/profile_notifier.dart';
+import '../../../profile/data/booking_notifier.dart';
+import 'package:provider/provider.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
+  static const String routeName = '/home';
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
   static const Color _backgroundColor = Color(0xFF070B14);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProfileNotifier>().fetchProfile();
+      context.read<BookingNotifier>().fetchBookings();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,23 +86,57 @@ class _HomeBottomNavigationBar extends StatelessWidget {
             top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
           ),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            _BottomNavItem(
+            const _BottomNavItem(
               icon: Icons.home_rounded,
-              label: 'Home',
+              label: 'Trang chủ',
               isActive: true,
             ),
-            _BottomNavItem(icon: Icons.explore_rounded, label: 'Explore'),
+            _BottomNavItem(
+              icon: Icons.explore_rounded,
+              label: 'Khám phá',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ExplorePage(),
+                  ),
+                );
+              },
+            ),
             _BottomNavItem(
               icon: Icons.calendar_month_rounded,
-              label: 'Booking',
+              label: 'Đặt lịch',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const BookingHistoryPage(),
+                  ),
+                );
+              },
             ),
             _BottomNavItem(
               icon: Icons.workspace_premium_rounded,
-              label: 'Membership',
+              label: 'Thành viên',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const MembershipPage(),
+                  ),
+                );
+              },
             ),
-            _BottomNavItem(icon: Icons.person_rounded, label: 'Profile'),
+            _BottomNavItem(
+              icon: Icons.person_rounded,
+              label: 'Hồ sơ',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ProfilePage(),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -92,6 +149,7 @@ class _BottomNavItem extends StatelessWidget {
     required this.icon,
     required this.label,
     this.isActive = false,
+    this.onTap,
   });
 
   static const Color _primaryOrange = Color(0xFFFF6B16);
@@ -99,39 +157,44 @@ class _BottomNavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isActive;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final color = isActive ? _primaryOrange : Colors.white54;
 
     return Expanded(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            height: 32,
-            width: 44,
-            decoration: BoxDecoration(
-              color: isActive
-                  ? _primaryOrange.withValues(alpha: 0.14)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              height: 32,
+              width: 44,
+              decoration: BoxDecoration(
+                color: isActive
+                    ? _primaryOrange.withValues(alpha: 0.14)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Icon(icon, color: color, size: 22),
             ),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: color,
-              fontSize: 10,
-              fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
-              letterSpacing: 0,
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: color,
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                letterSpacing: 0,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
