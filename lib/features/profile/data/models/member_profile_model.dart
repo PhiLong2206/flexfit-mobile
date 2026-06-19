@@ -5,6 +5,7 @@ class MemberProfileModel {
     this.phoneNumber,
     this.dateOfBirth,
     this.gender,
+    this.avatarUrl,
     this.heightCm,
     this.weightKg,
     this.fitnessGoal,
@@ -18,6 +19,7 @@ class MemberProfileModel {
   final String? phoneNumber;
   final String? dateOfBirth;
   final String? gender;
+  final String? avatarUrl;
   final double? heightCm;
   final double? weightKg;
   final String? fitnessGoal;
@@ -32,6 +34,7 @@ class MemberProfileModel {
       phoneNumber: _read(json, 'phoneNumber')?.toString(),
       dateOfBirth: _read(json, 'dateOfBirth')?.toString(),
       gender: _read(json, 'gender')?.toString(),
+      avatarUrl: _read(json, 'avatarUrl')?.toString(),
       heightCm: double.tryParse(_read(json, 'heightCm')?.toString() ?? ''),
       weightKg: double.tryParse(_read(json, 'weightKg')?.toString() ?? ''),
       fitnessGoal: _read(json, 'fitnessGoal')?.toString(),
@@ -42,18 +45,26 @@ class MemberProfileModel {
   }
 
   Map<String, dynamic> toUpdateJson() {
-    return {
-      'fullName': fullName,
-      'phoneNumber': phoneNumber,
-      'gender': gender,
-      'dateOfBirth': dateOfBirth,
+    final data = <String, dynamic>{
+      'fullName': fullName.trim(),
+      'phoneNumber': phoneNumber?.trim(),
+      'dateOfBirth': dateOfBirth?.trim(),
+      'gender': gender?.trim(),
       'heightCm': heightCm,
       'weightKg': weightKg,
-      'fitnessGoal': fitnessGoal,
-      'activityLevel': activityLevel,
-      'preferredWorkoutTime': preferredWorkoutTime,
-      'bio': bio,
+      'fitnessGoal': fitnessGoal?.trim(),
+      'activityLevel': activityLevel?.trim(),
+      'preferredWorkoutTime': preferredWorkoutTime?.trim(),
+      'bio': bio?.trim(),
     };
+
+    data.removeWhere((_, value) {
+      if (value == null) return true;
+      if (value is String && value.trim().isEmpty) return true;
+      return false;
+    });
+
+    return data;
   }
 
   MemberProfileModel copyWith({
@@ -62,6 +73,7 @@ class MemberProfileModel {
     String? phoneNumber,
     String? dateOfBirth,
     String? gender,
+    String? avatarUrl,
     double? heightCm,
     double? weightKg,
     String? fitnessGoal,
@@ -75,6 +87,7 @@ class MemberProfileModel {
       phoneNumber: phoneNumber ?? this.phoneNumber,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       gender: gender ?? this.gender,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
       heightCm: heightCm ?? this.heightCm,
       weightKg: weightKg ?? this.weightKg,
       fitnessGoal: fitnessGoal ?? this.fitnessGoal,

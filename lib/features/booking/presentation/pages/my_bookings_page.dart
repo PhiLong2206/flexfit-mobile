@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../gym/presentation/pages/explore_page.dart';
 import '../../data/models/booking_model.dart';
+import '../helpers/booking_group_helper.dart';
 import '../providers/booking_provider.dart';
 import '../widgets/booking_theme.dart';
 import '../widgets/review_bottom_sheet.dart';
@@ -67,6 +69,9 @@ class _MyBookingsView extends StatelessWidget {
     }
     final bookings = provider.bookings;
     if (bookings.isEmpty) {
+      return const _EmptyBookingsState();
+    }
+    if (bookings.isEmpty) {
       return _StateMessage(
         icon: Icons.event_busy_rounded,
         title: 'Chưa có lịch sử đặt lịch',
@@ -77,22 +82,135 @@ class _MyBookingsView extends StatelessWidget {
       );
     }
 
+    final sections = groupBookingsBySchedule(bookings);
+
     return RefreshIndicator(
       onRefresh: () =>
           context.read<BookingProvider>().fetchBookings(force: true),
-      child: ListView.separated(
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-        itemCount: bookings.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final booking = bookings[index];
-          return _BookingTile(
-            booking: booking,
-            onCancel: booking.status.toLowerCase() == 'cancelled'
-                ? null
-                : () => _cancel(context, booking),
-          );
-        },
+        children: [
+          for (
+            var sectionIndex = 0;
+            sectionIndex < sections.length;
+            sectionIndex++
+          ) ...[
+            if (sectionIndex > 0) const SizedBox(height: 22),
+            _BookingSection(
+              section: sections[sectionIndex],
+              onCancel: (booking) => _cancel(context, booking),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _BookingSection extends StatelessWidget {
+  const _BookingSection({required this.section, required this.onCancel});
+
+  final BookingSectionGroup section;
+  final ValueChanged<BookingModel> onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(title: section.title, subtitle: section.subtitle),
+        const SizedBox(height: 12),
+        for (var index = 0; index < section.bookings.length; index++) ...[
+          if (index > 0) const SizedBox(height: 12),
+          _BookingTile(
+            booking: section.bookings[index],
+            onCancel: _canCancel(section.bookings[index])
+                ? () => onCancel(section.bookings[index])
+                : null,
+          ),
+        ],
+      ],
+    );
+  }
+
+  bool _canCancel(BookingModel booking) {
+    final status = booking.status.toLowerCase();
+    return status != 'cancelled' && status != 'canceled';
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: BookingTheme.text,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          subtitle,
+          style: const TextStyle(
+            color: BookingTheme.secondaryText,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EmptyBookingsState extends StatelessWidget {
+  const _EmptyBookingsState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.event_busy_rounded,
+              color: BookingTheme.primary,
+              size: 46,
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Bạn chưa có lịch đặt nào',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: BookingTheme.text,
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const ExplorePage()),
+                );
+              },
+              icon: const Icon(Icons.explore_rounded),
+              label: const Text('Khám phá phòng gym'),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/api_client.dart';
 import '../models/payment_model.dart';
+import 'package:flutter/foundation.dart';
 
 class PaymentRepository {
   PaymentRepository({ApiClient? apiClient})
@@ -21,13 +22,13 @@ class PaymentRepository {
 
   Future<List<PaymentHistoryModel>> getMyPaymentHistory() async {
     final response = await _apiClient.get('/payment/history');
-    return _readList(response)
-        .whereType<Map>()
-        .map(
-          (item) =>
-              PaymentHistoryModel.fromJson(Map<String, dynamic>.from(item)),
-        )
-        .toList();
+    return _readList(response).whereType<Map>().map((item) {
+      final payment = PaymentHistoryModel.fromJson(
+        Map<String, dynamic>.from(item),
+      );
+      debugPrint('PAYMENT STATUS: ${payment.status}');
+      return payment;
+    }).toList();
   }
 
   String resolvePaymentUrl(String paymentUrl) {

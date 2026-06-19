@@ -5,7 +5,8 @@ import 'package:provider/provider.dart';
 
 import 'core/constants/app_constants.dart';
 import 'core/services/payment_deep_link_service.dart';
-import 'features/auth/presentation/pages/login_page.dart';
+import 'features/auth/presentation/pages/auth_gate_page.dart';
+import 'features/membership/data/credit_refresh_notifier.dart';
 import 'features/membership/presentation/pages/membership_page.dart';
 import 'features/notification/presentation/providers/notification_provider.dart';
 
@@ -43,6 +44,7 @@ class _FlexFitAppState extends State<FlexFitApp> {
     if (context == null) return;
 
     final isSuccess = result.status == PaymentDeepLinkStatus.success;
+    CreditRefreshNotifier.instance.notifyCreditChanged();
 
     rootNavigatorKey.currentState?.pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const MembershipPage()),
@@ -54,8 +56,7 @@ class _FlexFitAppState extends State<FlexFitApp> {
         content: Text(
           isSuccess ? 'Thanh toán thành công' : 'Bạn đã hủy giao dịch',
         ),
-        backgroundColor:
-            isSuccess ? Colors.green : AppConstants.primaryColor,
+        backgroundColor: isSuccess ? Colors.green : AppConstants.primaryColor,
       ),
     );
   }
@@ -88,7 +89,7 @@ class _FlexFitAppState extends State<FlexFitApp> {
             centerTitle: false,
           ),
         ),
-        home: const LoginPage(),
+        home: const AuthGatePage(),
       ),
     );
   }

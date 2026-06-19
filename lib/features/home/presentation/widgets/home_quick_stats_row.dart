@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../booking/data/booking_refresh_notifier.dart';
+import '../../../booking/data/models/booking_model.dart';
+import '../../../booking/data/repositories/booking_repository.dart';
 import '../../../membership/data/credit_refresh_notifier.dart';
 import '../../../membership/data/repositories/credit_repository.dart';
 
@@ -10,33 +13,90 @@ class HomeQuickStatsRow extends StatefulWidget {
   State<HomeQuickStatsRow> createState() => _HomeQuickStatsRowState();
 }
 
-class _HomeQuickStatsRowState extends State<HomeQuickStatsRow> {
+class _HomeQuickStatsRowState extends State<HomeQuickStatsRow>
+    with WidgetsBindingObserver {
   final _creditRepository = CreditRepository();
-  late Future<int> _creditFuture;
+  final _bookingRepository = BookingRepository();
+  late Future<_HomeStats> _statsFuture;
 
   @override
   void initState() {
     super.initState();
-    _creditFuture = _loadCredit();
-    CreditRefreshNotifier.instance.addListener(_reloadCredit);
+    WidgetsBinding.instance.addObserver(this);
+    _statsFuture = _loadStats();
+    CreditRefreshNotifier.instance.addListener(_reloadStats);
+    BookingRefreshNotifier.instance.addListener(_reloadStats);
   }
 
   @override
   void dispose() {
-    CreditRefreshNotifier.instance.removeListener(_reloadCredit);
+    WidgetsBinding.instance.removeObserver(this);
+    CreditRefreshNotifier.instance.removeListener(_reloadStats);
+    BookingRefreshNotifier.instance.removeListener(_reloadStats);
     super.dispose();
   }
 
-  Future<int> _loadCredit() {
-    return _creditRepository.getMyCredit().then((credit) => credit.balance);
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _reloadStats();
+    }
   }
 
-  void _reloadCredit() {
+  Future<_HomeStats> _loadStats() async {
+    final creditFuture = _loadCreditStats();
+    final upcomingFuture = _loadUpcomingBookingCount();
+    final credit = await creditFuture;
+    final upcomingBookingCount = await upcomingFuture;
+
+    return _HomeStats(
+      creditBalance: credit.balance,
+      upcomingBookingCount: upcomingBookingCount,
+      hasCreditError: credit.hasError,
+    );
+  }
+
+  Future<_CreditStats> _loadCreditStats() async {
+    try {
+      final credit = await _creditRepository.getMyCredit();
+      return _CreditStats(balance: credit.balance, hasError: false);
+    } catch (_) {
+      return const _CreditStats(balance: 0, hasError: true);
+    }
+  }
+
+  Future<int> _loadUpcomingBookingCount() async {
+    try {
+      final bookings = await _bookingRepository.getMyBookings();
+      return _countUpcomingBookings(bookings);
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  int _countUpcomingBookings(List<BookingModel> bookings) {
+    final now = DateTime.now();
+    return bookings.where((booking) {
+      return !_isIgnoredBookingStatus(booking.status) &&
+          !booking.startTime.isBefore(now);
+    }).length;
+  }
+
+  bool _isIgnoredBookingStatus(String value) {
+    final normalized = value.trim().toLowerCase().replaceAll(' ', '');
+    return normalized == 'cancelled' ||
+        normalized == 'canceled' ||
+        normalized == 'failed' ||
+        normalized == 'error' ||
+        normalized == 'rejected';
+  }
+
+  void _reloadStats() {
     if (!mounted) {
       return;
     }
     setState(() {
-      _creditFuture = _loadCredit();
+      _statsFuture = _loadStats();
     });
   }
 
@@ -44,30 +104,33 @@ class _HomeQuickStatsRowState extends State<HomeQuickStatsRow> {
   Widget build(BuildContext context) {
     return SizedBox(
       height: 104,
-      child: FutureBuilder<int>(
-        future: _creditFuture,
+      child: FutureBuilder<_HomeStats>(
+        future: _statsFuture,
         builder: (context, snapshot) {
+          final statsData = snapshot.data;
+          final isLoading = snapshot.connectionState == ConnectionState.waiting;
           final stats = [
             _QuickStat(
               icon: Icons.bolt_rounded,
-              value: snapshot.connectionState == ConnectionState.waiting
-                  ? '...'
-                  : '${snapshot.data ?? 0}',
+              value: isLoading ? '...' : '${statsData?.creditBalance ?? 0}',
               label: 'Credit hiện có',
-              hint: snapshot.hasError ? 'Cần đăng nhập' : 'Số dư ví',
+              hint: statsData?.hasCreditError ?? false
+                  ? 'Cần đăng nhập'
+                  : 'Số dư ví',
             ),
-            const _QuickStat(
+            _QuickStat(
               icon: Icons.event_available_rounded,
-              value: '0',
+              value: isLoading
+                  ? '...'
+                  : '${statsData?.upcomingBookingCount ?? 0}',
               label: 'Lịch sắp tới',
-              hint: 'Hôm nay',
+              hint: 'Còn hiệu lực',
             ),
             const _QuickStat(
-              icon: Icons.workspace_premium_rounded,
-              value: 'Thành viên',
-              label: 'Hạng thành viên',
-              hint: 'FlexFit',
-            ),
+  icon: Icons.workspace_premium_rounded,
+  value: 'Member',
+  label: 'FlexFit',
+),
           ];
 
           return Row(
@@ -146,18 +209,20 @@ class _QuickStatCard extends StatelessWidget {
               letterSpacing: 0,
             ),
           ),
-          const SizedBox(height: 3),
-          Text(
-            stat.hint,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: textTheme.labelSmall?.copyWith(
-              color: Colors.white.withValues(alpha: 0.42),
-              fontWeight: FontWeight.w600,
-              fontSize: 9.5,
-              letterSpacing: 0,
+          if (stat.hint != null) ...[
+            const SizedBox(height: 3),
+            Text(
+              stat.hint!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.labelSmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.42),
+                fontWeight: FontWeight.w600,
+                fontSize: 9.5,
+                letterSpacing: 0,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -169,11 +234,30 @@ class _QuickStat {
     required this.icon,
     required this.value,
     required this.label,
-    required this.hint,
+    this.hint,
   });
 
   final IconData icon;
   final String value;
   final String label;
-  final String hint;
+  final String? hint;
+}
+
+class _HomeStats {
+  const _HomeStats({
+    required this.creditBalance,
+    required this.upcomingBookingCount,
+    required this.hasCreditError,
+  });
+
+  final int creditBalance;
+  final int upcomingBookingCount;
+  final bool hasCreditError;
+}
+
+class _CreditStats {
+  const _CreditStats({required this.balance, required this.hasError});
+
+  final int balance;
+  final bool hasError;
 }

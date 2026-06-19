@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../data/credit_refresh_notifier.dart';
 import '../../data/models/payment_model.dart';
 import '../../data/repositories/payment_repository.dart';
 
@@ -11,14 +12,31 @@ class PaymentHistoryPage extends StatefulWidget {
   State<PaymentHistoryPage> createState() => _PaymentHistoryPageState();
 }
 
-class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
+class _PaymentHistoryPageState extends State<PaymentHistoryPage>
+    with WidgetsBindingObserver {
   final _repository = PaymentRepository();
   late Future<List<PaymentHistoryModel>> _future;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    CreditRefreshNotifier.instance.addListener(_reload);
     _future = _repository.getMyPaymentHistory();
+  }
+
+  @override
+  void dispose() {
+    CreditRefreshNotifier.instance.removeListener(_reload);
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _reload();
+    }
   }
 
   Future<void> _refresh() async {
@@ -30,6 +48,9 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
   }
 
   void _reload() {
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _future = _repository.getMyPaymentHistory();
     });
@@ -294,28 +315,34 @@ class _StateMessage extends StatelessWidget {
 }
 
 Color _statusColor(String status) {
-  final value = status.toLowerCase();
-  if (value.contains('success') || value.contains('paid')) {
+  final value = _normalizePaymentStatus(status);
+  if (value == 'success' || value == 'paid' || value == 'completed') {
     return AppColors.completed;
   }
-  if (value.contains('fail') || value.contains('cancel')) {
+  if (value.contains('fail') ||
+      value.contains('error') ||
+      value.contains('cancel')) {
     return AppColors.cancelled;
   }
   return AppConstants.primaryColor;
 }
 
 String _statusLabel(String status) {
-  final value = status.toLowerCase();
-  if (value.contains('success') || value.contains('paid')) {
+  final value = _normalizePaymentStatus(status);
+  if (value == 'success' || value == 'paid' || value == 'completed') {
     return 'Thành công';
   }
-  if (value.contains('fail')) {
+  if (value.contains('fail') || value.contains('error')) {
     return 'Thất bại';
   }
   if (value.contains('cancel')) {
     return 'Đã huỷ';
   }
   return 'Đang xử lý';
+}
+
+String _normalizePaymentStatus(String status) {
+  return status.trim().toLowerCase();
 }
 
 String _formatCurrency(double value) {

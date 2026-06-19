@@ -56,14 +56,29 @@ class ApiClient {
       headers['Authorization'] = 'Bearer $token';
     }
 
+    final encodedBody = body == null
+        ? null
+        : body is String
+        ? body
+        : jsonEncode(body);
+
+    debugPrint('REQUEST $method $uri');
+    debugPrint('REQUEST BODY: $encodedBody');
+
     final response = await _transport.send(
       method,
       uri,
       headers: headers,
-      body: body == null ? null : jsonEncode(body),
+      body: encodedBody,
     );
     final responseText = response.body;
+    if (path == '/payment/history' || path == 'payment/history') {
+      debugPrint('PAYMENT HISTORY RAW: $responseText');
+    }
     final decoded = _decode(responseText);
+
+    debugPrint('RESPONSE ${response.statusCode} $method $uri');
+    debugPrint('RESPONSE BODY: $responseText');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw ApiException(

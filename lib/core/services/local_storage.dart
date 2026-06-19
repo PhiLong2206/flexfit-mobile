@@ -45,6 +45,27 @@ class LocalStorage {
     await prefs.remove(_tokenKey);
   }
 
+  static Future<bool> hasValidAuthToken({DateTime? now}) async {
+    final token = await getToken();
+    if (token == null || token.trim().isEmpty) {
+      return false;
+    }
+
+    final payload = _decodeJwtPayload(token);
+    if (payload == null) {
+      await removeToken();
+      return false;
+    }
+
+    final expiresAt = _readJwtExpiresAt(payload);
+    if (expiresAt == null || !expiresAt.isAfter(now ?? DateTime.now())) {
+      await removeToken();
+      return false;
+    }
+
+    return true;
+  }
+
   static Future<void> saveRememberedCredentials({
     required String email,
     required String password,
@@ -76,23 +97,38 @@ class LocalStorage {
     final token = await getToken();
     if (token == null) return null;
 
+    final payload = _decodeJwtPayload(token);
+    if (payload == null) return null;
+
+    const nameIdentifierClaim =
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier';
+    return (payload[nameIdentifierClaim] ??
+            payload['nameid'] ??
+            payload['sub'] ??
+            payload['userId'])
+        ?.toString();
+  }
+
+  static Map<String, dynamic>? _decodeJwtPayload(String token) {
     final parts = token.split('.');
     if (parts.length < 2) return null;
 
     try {
       final normalized = base64Url.normalize(parts[1]);
       final payload = jsonDecode(utf8.decode(base64Url.decode(normalized)));
-      if (payload is! Map<String, dynamic>) return null;
-
-      const nameIdentifierClaim =
-          'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier';
-      return (payload[nameIdentifierClaim] ??
-              payload['nameid'] ??
-              payload['sub'] ??
-              payload['userId'])
-          ?.toString();
+      if (payload is! Map) return null;
+      return Map<String, dynamic>.from(payload);
     } catch (_) {
       return null;
     }
+  }
+
+  static DateTime? _readJwtExpiresAt(Map<String, dynamic> payload) {
+    final exp = payload['exp'];
+    final seconds = exp is num
+        ? exp.toInt()
+        : int.tryParse(exp?.toString() ?? '');
+    if (seconds == null) return null;
+    return DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
   }
 }

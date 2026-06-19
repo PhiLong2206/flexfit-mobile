@@ -202,11 +202,12 @@ class _LoginPageState extends State<LoginPage> {
         await LocalStorage.clearRememberedCredentials();
       }
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute<void>(
           settings: const RouteSettings(name: HomePage.routeName),
           builder: (_) => const HomePage(),
         ),
+        (_) => false,
       );
     } catch (error) {
       if (!mounted) return;
@@ -290,11 +291,12 @@ class _LoginPageState extends State<LoginPage> {
 
       await _authRepository.googleLoginWithIdToken(idToken);
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute<void>(
           settings: const RouteSettings(name: HomePage.routeName),
           builder: (_) => const HomePage(),
         ),
+        (_) => false,
       );
     } catch (error) {
       if (!mounted) return;
@@ -310,11 +312,12 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await _authProvider.googleLogin();
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute<void>(
           settings: const RouteSettings(name: HomePage.routeName),
           builder: (_) => const HomePage(),
         ),
+        (_) => false,
       );
     } catch (error) {
       if (!mounted) return;

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../catalog/domain/entities/branch.dart';
 import '../../../profile/data/models/booking_item.dart';
+import '../../data/booking_refresh_notifier.dart';
 import '../../data/models/booking_model.dart';
 import '../../data/repositories/booking_repository.dart';
+import '../../domain/services/booking_overlap_validator.dart';
 
 class GymTimeSlotSelection {
   const GymTimeSlotSelection({
@@ -36,6 +38,8 @@ class BookingProvider extends ChangeNotifier {
   static const _slotDuration = Duration(minutes: 60);
 
   final BookingRepository _repository;
+  final BookingOverlapValidator _overlapValidator =
+      const BookingOverlapValidator();
 
   List<BookingModel> _bookings = [];
   bool _isLoading = false;
@@ -165,12 +169,14 @@ class BookingProvider extends ChangeNotifier {
   }) async {
     _setLoading(true);
     try {
+      await _validateNoOverlap(startTime: startTime, endTime: endTime);
       final booking = await _repository.bookGym(
         branchId: branchId,
         sessionName: sessionName,
         startTime: startTime,
         endTime: endTime,
       );
+      BookingRefreshNotifier.instance.notifyBookingsChanged();
       _error = null;
       return booking;
     } catch (error) {
@@ -181,11 +187,17 @@ class BookingProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> createClassBooking(String classId) async {
+  Future<void> createClassBooking(
+    String classId, {
+    required DateTime startTime,
+    required DateTime endTime,
+  }) async {
     _bookingClassId = classId;
     _setLoading(true);
     try {
+      await _validateNoOverlap(startTime: startTime, endTime: endTime);
       await _repository.bookClass(classId);
+      BookingRefreshNotifier.instance.notifyBookingsChanged();
       _error = null;
     } catch (error) {
       _error = error.toString();
@@ -209,6 +221,18 @@ class BookingProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> _validateNoOverlap({
+    required DateTime startTime,
+    required DateTime endTime,
+  }) async {
+    final existingBookings = await _repository.getMyBookings();
+    _overlapValidator.validate(
+      newStart: startTime,
+      newEnd: endTime,
+      existingBookings: existingBookings,
+    );
+  }
+
   List<BookingModel> getBookingsByStatus(BookingStatus status) {
     return _bookings.where((booking) {
       final value = booking.status.toLowerCase();
@@ -230,6 +254,7 @@ class BookingProvider extends ChangeNotifier {
     try {
       await _repository.cancelBooking(booking);
       _bookings = await _repository.getMyBookings();
+      BookingRefreshNotifier.instance.notifyBookingsChanged();
       _error = null;
     } catch (error) {
       _error = error.toString();

@@ -70,6 +70,8 @@ class _ExplorePageState extends State<ExplorePage>
     try {
       await bookingContext.read<BookingProvider>().createClassBooking(
         fitnessClass.id,
+        startTime: fitnessClass.startTime,
+        endTime: fitnessClass.endTime,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(

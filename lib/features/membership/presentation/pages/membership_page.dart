@@ -103,8 +103,8 @@ class _MembershipPageState extends State<MembershipPage>
       return;
     }
 
+    await _refreshAfterPayment(showDialogs: false);
     _pendingPaymentId = null;
-    await _refresh();
     if (!mounted) {
       return;
     }
@@ -389,31 +389,31 @@ class _MembershipPageState extends State<MembershipPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-   appBar: AppBar(
-  title: const Text('Thành viên'),
-  backgroundColor: _backgroundColor,
-  leading: IconButton(
-    tooltip: 'Quay lại',
-    icon: const Icon(Icons.arrow_back_ios_new_rounded),
-    onPressed: () {
-      if (Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
-        return;
-      }
+      appBar: AppBar(
+        title: const Text('Thành viên'),
+        backgroundColor: _backgroundColor,
+        leading: IconButton(
+          tooltip: 'Quay lại',
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+              return;
+            }
 
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
-    },
-  ),
-  actions: [
-    IconButton(
-      tooltip: 'Lịch sử thanh toán',
-      onPressed: _openHistory,
-      icon: const Icon(Icons.receipt_long_rounded),
-    ),
-  ],
-),
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const HomePage()),
+            );
+          },
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Lịch sử thanh toán',
+            onPressed: _openHistory,
+            icon: const Icon(Icons.receipt_long_rounded),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: FutureBuilder<_MembershipData>(
           future: _future,
@@ -839,20 +839,24 @@ class _MembershipData {
 }
 
 bool _isPaymentSuccess(String? status) {
-  final value = status?.toLowerCase() ?? '';
-  return value.contains('success') || value.contains('paid');
+  final value = _normalizePaymentStatus(status);
+  return value == 'success' || value == 'paid' || value == 'completed';
 }
 
 bool _isPaymentCancelled(String? status) {
-  final value = status?.toLowerCase() ?? '';
+  final value = _normalizePaymentStatus(status);
   return value.contains('cancel') ||
       value.contains('huy') ||
       value.contains('huỷ');
 }
 
 bool _isPaymentFailed(String? status) {
-  final value = status?.toLowerCase() ?? '';
+  final value = _normalizePaymentStatus(status);
   return value.contains('fail') || value.contains('error');
+}
+
+String _normalizePaymentStatus(String? status) {
+  return status?.trim().toLowerCase() ?? '';
 }
 
 String _friendlyPaymentError(Object error) {

@@ -55,8 +55,17 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<MemberProfileModel> _load() async {
     final profile = await _repository.getMe();
-    _profile = profile;
+    _applyProfile(profile);
 
+    return profile;
+  }
+
+  void _applyProfile(MemberProfileModel profile) {
+    _profile = profile;
+    _syncControllers(profile);
+  }
+
+  void _syncControllers(MemberProfileModel profile) {
     _nameController.text = profile.fullName;
     _phoneController.text = profile.phoneNumber ?? '';
     _genderController.text = profile.gender ?? '';
@@ -64,8 +73,6 @@ class _ProfilePageState extends State<ProfilePage> {
     _weightController.text = profile.weightKg?.toString() ?? '';
     _goalController.text = profile.fitnessGoal ?? '';
     _bioController.text = profile.bio ?? '';
-
-    return profile;
   }
 
   void _reload() {
@@ -85,27 +92,89 @@ class _ProfilePageState extends State<ProfilePage> {
         fullName: _nameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
         gender: _genderController.text.trim(),
-        heightCm: double.tryParse(_heightController.text.trim()),
-        weightKg: double.tryParse(_weightController.text.trim()),
+        heightCm: _parseHeightCm(_heightController.text),
+        weightKg: _parseNumber(_weightController.text),
         fitnessGoal: _goalController.text.trim(),
         bio: _bioController.text.trim(),
       );
 
       final saved = await _repository.updateMe(updated);
-      _profile = saved;
 
       if (!mounted) return;
+      setState(() {
+        _applyProfile(saved);
+        _future = Future.value(saved);
+      });
+
+      final persisted = await _repository.getMe();
+      _logNotPersistedFields(requested: updated, persisted: persisted);
+
+      if (!mounted) return;
+      setState(() {
+        _applyProfile(persisted);
+        _future = Future.value(persisted);
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Cập nhật hồ sơ thành công.')),
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  void _logNotPersistedFields({
+    required MemberProfileModel requested,
+    required MemberProfileModel persisted,
+  }) {
+    final fields = <String>[];
+
+    void checkString(String field, String? sent, String? loaded) {
+      final sentText = sent?.trim();
+      if (sentText == null || sentText.isEmpty) return;
+      if (sentText != loaded?.trim()) fields.add(field);
+    }
+
+    void checkNumber(String field, double? sent, double? loaded) {
+      if (sent == null) return;
+      if (loaded == null || (sent - loaded).abs() > 0.01) fields.add(field);
+    }
+
+    checkString('fullName', requested.fullName, persisted.fullName);
+    checkString('phoneNumber', requested.phoneNumber, persisted.phoneNumber);
+    checkString('dateOfBirth', requested.dateOfBirth, persisted.dateOfBirth);
+    checkString('gender', requested.gender, persisted.gender);
+    checkNumber('heightCm', requested.heightCm, persisted.heightCm);
+    checkNumber('weightKg', requested.weightKg, persisted.weightKg);
+    checkString('fitnessGoal', requested.fitnessGoal, persisted.fitnessGoal);
+    checkString(
+      'activityLevel',
+      requested.activityLevel,
+      persisted.activityLevel,
+    );
+    checkString(
+      'preferredWorkoutTime',
+      requested.preferredWorkoutTime,
+      persisted.preferredWorkoutTime,
+    );
+    checkString('bio', requested.bio, persisted.bio);
+
+    if (fields.isEmpty) {
+      debugPrint(
+        'UPDATE PROFILE PERSISTENCE CHECK: all sent fields persisted.',
+      );
+      return;
+    }
+
+    debugPrint(
+      'UPDATE PROFILE PERSISTENCE CHECK: backend did not persist fields: '
+      '${fields.join(', ')}',
+    );
   }
 
   Future<void> _logout() async {
@@ -147,7 +216,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
     final parts = name.split(RegExp(r'\s+'));
     if (parts.length == 1) {
-      return parts.first.substring(0, parts.first.length >= 2 ? 2 : 1).toUpperCase();
+      final text = parts.first;
+      return text.substring(0, text.length >= 2 ? 2 : 1).toUpperCase();
     }
 
     return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
@@ -172,7 +242,7 @@ class _ProfilePageState extends State<ProfilePage> {
           future: _future,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const _ProfileLoadingState();
             }
 
             if (snapshot.hasError) {
@@ -206,6 +276,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                         initials: _initials(profile),
                                         name: profile.fullName,
                                         email: profile.email,
+                                        avatarUrl: profile.avatarUrl,
                                       ),
                                       const SizedBox(height: 16),
                                       _MenuCard(
@@ -242,6 +313,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   initials: _initials(profile),
                                   name: profile.fullName,
                                   email: profile.email,
+                                  avatarUrl: profile.avatarUrl,
                                 ),
                                 const SizedBox(height: 16),
                                 _MenuCard(
@@ -284,41 +356,33 @@ class _ProfileCard extends StatelessWidget {
     required this.initials,
     required this.name,
     required this.email,
+    required this.avatarUrl,
   });
 
   final String initials;
   final String name;
   final String email;
+  final String? avatarUrl;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: _boxDecoration(),
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF161F2E), Color(0xFF111827), Color(0xFF241A14)],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: _ProfilePageState._primaryOrange.withValues(alpha: 0.22),
+        ),
+      ),
       child: Column(
         children: [
-          Container(
-            width: 92,
-            height: 92,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: _ProfilePageState._primaryOrange,
-                width: 5,
-              ),
-              color: Colors.black,
-            ),
-            child: Text(
-              initials,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
+          _AvatarBadge(initials: initials, avatarUrl: avatarUrl),
           const SizedBox(height: 18),
           Text(
             name.isEmpty ? 'FlexFit Member' : name,
@@ -359,6 +423,62 @@ class _ProfileCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AvatarBadge extends StatelessWidget {
+  const _AvatarBadge({required this.initials, required this.avatarUrl});
+
+  final String initials;
+  final String? avatarUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = avatarUrl?.trim();
+    return Container(
+      width: 100,
+      height: 100,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: _ProfilePageState._primaryOrange.withValues(alpha: 0.9),
+          width: 3,
+        ),
+        color: Colors.black,
+      ),
+      child: ClipOval(
+        child: url == null || url.isEmpty
+            ? _InitialsAvatar(initials: initials)
+            : Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => _InitialsAvatar(initials: initials),
+              ),
+      ),
+    );
+  }
+}
+
+class _InitialsAvatar extends StatelessWidget {
+  const _InitialsAvatar({required this.initials});
+
+  final String initials;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      alignment: Alignment.center,
+      color: const Color(0xFF070B14),
+      child: Text(
+        initials,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 30,
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
   }
@@ -428,8 +548,8 @@ class _MenuItem extends StatelessWidget {
     final color = danger
         ? Colors.redAccent
         : selected
-            ? Colors.white
-            : Colors.white60;
+        ? Colors.white
+        : Colors.white60;
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -518,6 +638,15 @@ class _ContentCard extends StatelessWidget {
           height: 54,
           child: FilledButton.icon(
             onPressed: isSaving ? null : onSave,
+            style: FilledButton.styleFrom(
+              backgroundColor: _ProfilePageState._primaryOrange,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: _ProfilePageState._primaryOrange
+                  .withValues(alpha: 0.42),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
             icon: isSaving
                 ? const SizedBox(
                     width: 18,
@@ -590,6 +719,8 @@ class _HealthGoalForm extends StatelessWidget {
         const _SectionTitle('Chỉ số sức khỏe & Mục tiêu'),
         const SizedBox(height: 18),
         _Field(controller: genderController, label: 'Giới tính'),
+        _GoalChips(controller: goalController),
+        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
@@ -616,6 +747,53 @@ class _HealthGoalForm extends StatelessWidget {
           maxLines: 3,
         ),
       ],
+    );
+  }
+}
+
+class _GoalChips extends StatelessWidget {
+  const _GoalChips({required this.controller});
+
+  static const _goals = [
+    'Tăng cơ',
+    'Giảm mỡ',
+    'Giữ dáng',
+    'Cải thiện sức bền',
+    'Tập luyện linh hoạt',
+  ];
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final selected = value.text.trim();
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final goal in _goals)
+              ChoiceChip(
+                label: Text(goal),
+                selected: selected == goal,
+                onSelected: (_) => controller.text = goal,
+                selectedColor: _ProfilePageState._primaryOrange,
+                backgroundColor: Colors.white.withValues(alpha: 0.06),
+                side: BorderSide(
+                  color: selected == goal
+                      ? _ProfilePageState._primaryOrange
+                      : Colors.white.withValues(alpha: 0.08),
+                ),
+                labelStyle: TextStyle(
+                  color: selected == goal ? Colors.white : Colors.white70,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -672,11 +850,7 @@ class _Field extends StatelessWidget {
 }
 
 class _ReadOnlyField extends StatelessWidget {
-  const _ReadOnlyField({
-    required this.label,
-    required this.value,
-    this.icon,
-  });
+  const _ReadOnlyField({required this.label, required this.value, this.icon});
 
   final String label;
   final String value;
@@ -699,10 +873,7 @@ class _ReadOnlyField extends StatelessWidget {
   }
 }
 
-InputDecoration _inputDecoration({
-  required String label,
-  IconData? icon,
-}) {
+InputDecoration _inputDecoration({required String label, IconData? icon}) {
   return InputDecoration(
     labelText: label,
     labelStyle: const TextStyle(
@@ -733,6 +904,30 @@ BoxDecoration _boxDecoration() {
     borderRadius: BorderRadius.circular(18),
     border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
   );
+}
+
+class _ProfileLoadingState extends StatelessWidget {
+  const _ProfileLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(color: _ProfilePageState._primaryOrange),
+          SizedBox(height: 14),
+          Text(
+            'Đang tải hồ sơ...',
+            style: TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _StateMessage extends StatelessWidget {
@@ -782,4 +977,35 @@ class _StateMessage extends StatelessWidget {
       ),
     );
   }
+}
+
+double? _parseNumber(String value) {
+  final normalized = value.trim().replaceAll(',', '.');
+  if (normalized.isEmpty) return null;
+  return double.tryParse(normalized);
+}
+
+double? _parseHeightCm(String value) {
+  final number = _parseNumber(value);
+  if (number == null) return null;
+
+  if (number > 0 && number < 3) {
+    return number * 100;
+  }
+
+  return number;
+}
+
+// ignore: unused_element
+String? _normalizeFitnessGoal(String value) {
+  final text = value.trim().toLowerCase();
+  if (text.isEmpty) return null;
+
+  if (text.contains('giảm') || text.contains('giam')) return 'WeightLoss';
+  if (text.contains('tăng') || text.contains('tang')) return 'MuscleGain';
+  if (text.contains('sức khỏe') || text.contains('suc khoe')) {
+    return 'Health';
+  }
+
+  return value.trim();
 }
