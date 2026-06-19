@@ -1,14 +1,18 @@
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+
 import '../constants/app_constants.dart';
 import 'api_transport.dart';
 import 'api_transport_factory.dart';
 import 'local_storage.dart';
 
 class ApiException implements Exception {
-  const ApiException(this.message, {this.statusCode});
+  const ApiException(this.message, {this.statusCode, this.body});
 
   final String message;
   final int? statusCode;
+  final String? body;
 
   @override
   String toString() => message;
@@ -17,7 +21,9 @@ class ApiException implements Exception {
 class ApiClient {
   ApiClient({String? baseUrl, Object? httpClient, ApiTransport? transport})
     : _baseUrl = baseUrl ?? AppConstants.baseUrl,
-      _transport = transport ?? createApiTransport(httpClient);
+      _transport = transport ?? createApiTransport(httpClient) {
+    debugPrint('API Base URL: $_baseUrl');
+  }
 
   final String _baseUrl;
   final ApiTransport _transport;
@@ -50,19 +56,35 @@ class ApiClient {
       headers['Authorization'] = 'Bearer $token';
     }
 
+    final encodedBody = body == null
+        ? null
+        : body is String
+        ? body
+        : jsonEncode(body);
+
+    debugPrint('REQUEST $method $uri');
+    debugPrint('REQUEST BODY: $encodedBody');
+
     final response = await _transport.send(
       method,
       uri,
       headers: headers,
-      body: body == null ? null : jsonEncode(body),
+      body: encodedBody,
     );
     final responseText = response.body;
+    if (path == '/payment/history' || path == 'payment/history') {
+      debugPrint('PAYMENT HISTORY RAW: $responseText');
+    }
     final decoded = _decode(responseText);
+
+    debugPrint('RESPONSE ${response.statusCode} $method $uri');
+    debugPrint('RESPONSE BODY: $responseText');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw ApiException(
         _extractError(decoded, responseText),
         statusCode: response.statusCode,
+        body: responseText,
       );
     }
 

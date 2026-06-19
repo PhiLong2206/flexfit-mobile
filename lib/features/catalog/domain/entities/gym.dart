@@ -6,6 +6,9 @@ class Gym {
     this.thumbnailUrl,
     this.phoneNumber,
     this.email,
+    this.branchId,
+    this.branchName,
+    this.branchAddress,
     required this.status,
     required this.ratingAverage,
     required this.totalReviews,
@@ -17,6 +20,9 @@ class Gym {
   final String? thumbnailUrl;
   final String? phoneNumber;
   final String? email;
+  final String? branchId;
+  final String? branchName;
+  final String? branchAddress;
   final String status;
   final double ratingAverage;
   final int totalReviews;

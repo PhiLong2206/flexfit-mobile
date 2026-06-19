@@ -1,5 +1,6 @@
 import '../../../../core/services/api_client.dart';
 import '../models/member_profile_model.dart';
+import 'package:flutter/foundation.dart';
 
 class ProfileRepository {
   ProfileRepository({ApiClient? apiClient})
@@ -15,14 +16,42 @@ class ProfileRepository {
   }
 
   Future<MemberProfileModel> updateMe(MemberProfileModel profile) async {
-    final response = await _apiClient.put(
-      '/profiles/me',
-      body: profile.toUpdateJson(),
+    final body = profile.toUpdateJson();
+
+    debugPrint('UPDATE PROFILE BODY: $body');
+
+    final response = await _apiClient.put('/profiles/me', body: body);
+    debugPrint('UPDATE PROFILE RESPONSE: $response');
+
+    final profileData = _extractProfileData(response);
+    if (profileData != null) {
+      return MemberProfileModel.fromJson(profileData);
+    }
+
+    debugPrint(
+      'UPDATE PROFILE RESPONSE HAS NO PROFILE DATA; RELOADING /profiles/me',
     );
-    final data = Map<String, dynamic>.from(response as Map);
-    final profileData = data['data'] ?? data['Data'];
-    return MemberProfileModel.fromJson(
-      Map<String, dynamic>.from(profileData as Map),
-    );
+    return getMe();
+  }
+
+  Map<String, dynamic>? _extractProfileData(dynamic response) {
+    if (response is! Map) return null;
+
+    final data = Map<String, dynamic>.from(response);
+    final wrappedProfile = data['data'] ?? data['Data'];
+    if (wrappedProfile is Map) {
+      return Map<String, dynamic>.from(wrappedProfile);
+    }
+
+    final hasProfileShape =
+        data.containsKey('fullName') ||
+        data.containsKey('FullName') ||
+        data.containsKey('email') ||
+        data.containsKey('Email');
+    if (hasProfileShape) {
+      return data;
+    }
+
+    return null;
   }
 }

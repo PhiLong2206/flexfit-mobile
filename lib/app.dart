@@ -1,27 +1,83 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/constants/app_constants.dart';
-import 'features/auth/presentation/pages/login_page.dart';
+import 'core/services/payment_deep_link_service.dart';
+import 'features/auth/presentation/pages/auth_gate_page.dart';
+import 'features/membership/data/credit_refresh_notifier.dart';
+import 'features/membership/presentation/pages/membership_page.dart';
 import 'features/profile/data/profile_notifier.dart';
-import 'features/profile/data/booking_notifier.dart';
-import 'features/notification/data/notification_notifier.dart';
+import 'features/notification/presentation/providers/notification_provider.dart';
 import 'features/workout/data/workout_notifier.dart';
-import 'features/review/data/review_notifier.dart';
 
-class FlexFitApp extends StatelessWidget {
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
+class FlexFitApp extends StatefulWidget {
   const FlexFitApp({super.key});
+
+  @override
+  State<FlexFitApp> createState() => _FlexFitAppState();
+}
+
+class _FlexFitAppState extends State<FlexFitApp> {
+  StreamSubscription<PaymentDeepLinkResult>? _paymentLinkSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _initPaymentDeepLinks();
+  }
+
+  Future<void> _initPaymentDeepLinks() async {
+    final initialLink = await PaymentDeepLinkService.instance.getInitialLink();
+    if (initialLink != null) {
+      _handlePaymentDeepLink(initialLink);
+    }
+
+    _paymentLinkSub = PaymentDeepLinkService.instance.links.listen(
+      _handlePaymentDeepLink,
+    );
+  }
+
+  void _handlePaymentDeepLink(PaymentDeepLinkResult result) {
+    final context = rootNavigatorKey.currentContext;
+    if (context == null) return;
+
+    final isSuccess = result.status == PaymentDeepLinkStatus.success;
+    CreditRefreshNotifier.instance.notifyCreditChanged();
+
+    rootNavigatorKey.currentState?.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const MembershipPage()),
+      (_) => false,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isSuccess ? 'Thanh toán thành công' : 'Bạn đã hủy giao dịch',
+        ),
+        backgroundColor: isSuccess ? Colors.green : AppConstants.primaryColor,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _paymentLinkSub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ProfileNotifier()),
-        ChangeNotifierProvider(create: (_) => BookingNotifier()),
-        ChangeNotifierProvider(create: (_) => NotificationNotifier()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => WorkoutNotifier()),
-        ChangeNotifierProvider(create: (_) => ReviewNotifier()),
       ],
       child: MaterialApp(
+        navigatorKey: rootNavigatorKey,
         title: 'FlexFit',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
@@ -38,7 +94,7 @@ class FlexFitApp extends StatelessWidget {
             centerTitle: false,
           ),
         ),
-        home: const LoginPage(),
+        home: const AuthGatePage(),
       ),
     );
   }

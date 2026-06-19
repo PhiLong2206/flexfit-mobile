@@ -1,10 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../profile/data/booking_notifier.dart';
 import '../../../profile/data/models/booking_item.dart';
 import '../../data/models/booking_model.dart';
-import '../../../review/presentation/widgets/write_review_dialog.dart';
+import '../pages/booking_detail_page.dart';
+import '../providers/booking_provider.dart';
+import 'review_bottom_sheet.dart';
 
 class BookingCard extends StatelessWidget {
   final BookingModel booking;
@@ -64,13 +67,61 @@ class BookingCard extends StatelessWidget {
     return 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48'; // Gym center image
   }
 
+  void _openDetail(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => BookingDetailPage(
+          booking: booking,
+          onReviewed: () {
+            unawaited(
+              context.read<BookingProvider>().markBookingReviewed(booking),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openReviewSheet(BuildContext context) async {
+    if (!booking.canReview) {
+      return;
+    }
+    final result = await showModalBottomSheet<ReviewSheetResult>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ReviewBottomSheet(booking: booking),
+    );
+    if (result == null || !context.mounted) {
+      return;
+    }
+    await context.read<BookingProvider>().markBookingReviewed(booking);
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result == ReviewSheetResult.submitted
+              ? 'Cảm ơn bạn! Đánh giá đã được ghi nhận.'
+              : 'Lịch này đã được đánh giá trước đó.',
+        ),
+        backgroundColor: AppColors.completed,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   void _showCancelDialog(BuildContext context) {
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: AppColors.card,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Text(
             'Hủy lịch tập',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
@@ -82,26 +133,37 @@ class BookingCard extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Bỏ qua', style: TextStyle(color: Colors.white70)),
+              child: const Text(
+                'Bỏ qua',
+                style: TextStyle(color: Colors.white70),
+              ),
             ),
             TextButton(
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
                 try {
-                  await context.read<BookingNotifier>().cancelBooking(booking);
+                  await context.read<BookingProvider>().cancelBooking(booking);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: const Row(
                           children: [
-                            Icon(Icons.check_circle_rounded, color: Colors.white),
+                            Icon(
+                              Icons.check_circle_rounded,
+                              color: Colors.white,
+                            ),
                             SizedBox(width: 10),
-                            Text('Hủy lịch tập thành công!', style: TextStyle(fontWeight: FontWeight.w700)),
+                            Text(
+                              'Hủy lịch tập thành công!',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
                           ],
                         ),
                         backgroundColor: AppColors.completed,
                         behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     );
                   }
@@ -112,7 +174,9 @@ class BookingCard extends StatelessWidget {
                         content: Text('Lỗi: $e'),
                         backgroundColor: AppColors.cancelled,
                         behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     );
                   }
@@ -120,7 +184,10 @@ class BookingCard extends StatelessWidget {
               },
               child: const Text(
                 'Đồng ý',
-                style: TextStyle(color: AppColors.cancelled, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  color: AppColors.cancelled,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ],
@@ -135,225 +202,225 @@ class BookingCard extends StatelessWidget {
     final statusColor = _getStatusColor(status);
     final statusText = _getStatusText(status);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              _imageUrl,
-              height: 84,
-              width: 84,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 84,
-                  width: 84,
-                  color: Colors.white.withValues(alpha: 0.04),
-                  child: const Icon(
-                    Icons.image_not_supported_rounded,
-                    color: AppColors.textSecondary,
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        booking.gymName ?? booking.title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: statusColor.withValues(alpha: 0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        statusText,
-                        style: TextStyle(
-                          color: statusColor,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.location_on_outlined,
+    return GestureDetector(
+      onTap: () => _openDetail(context),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                _imageUrl,
+                height: 84,
+                width: 84,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 84,
+                    width: 84,
+                    color: Colors.white.withValues(alpha: 0.04),
+                    child: const Icon(
+                      Icons.image_not_supported_rounded,
                       color: AppColors.textSecondary,
-                      size: 14,
                     ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        booking.subtitle ?? 'Chi nhánh FlexFit',
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          booking.gymName ?? booking.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: statusColor.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          statusText,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on_outlined,
+                        color: AppColors.textSecondary,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          booking.subtitle ?? 'Chi nhánh FlexFit',
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today_rounded,
+                        color: AppColors.textSecondary,
+                        size: 13,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${_formatDate(booking.startTime)} | ${_formatTimeSlot(booking.startTime, booking.endTime)}',
                         style: const TextStyle(
-                          color: AppColors.textSecondary,
+                          color: Colors.white70,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.calendar_today_rounded,
-                      color: AppColors.textSecondary,
-                      size: 13,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${_formatDate(booking.startTime)} | ${_formatTimeSlot(booking.startTime, booking.endTime)}',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.star_rounded,
+                        color: Color(0xFFFFC857),
+                        size: 16,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.star_rounded,
-                      color: Color(0xFFFFC857),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 3),
-                    const Text(
-                      '4.8',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '${booking.creditUsed} Credits',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
-                if (status == BookingStatus.upcoming) ...[
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: OutlinedButton(
-                      onPressed: () => _showCancelDialog(context),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.cancelled,
-                        side: const BorderSide(color: AppColors.cancelled, width: 1.2),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: const Text(
-                        'Hủy lịch',
+                      const SizedBox(width: 3),
+                      const Text(
+                        '4.8',
                         style: TextStyle(
-                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
                           fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${booking.creditUsed} Credits',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (status == BookingStatus.upcoming) ...[
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: OutlinedButton(
+                        onPressed: () => _showCancelDialog(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.cancelled,
+                          side: const BorderSide(
+                            color: AppColors.cancelled,
+                            width: 1.2,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'Hủy lịch',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-                if (status == BookingStatus.completed) ...[
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: booking.isReviewed
-                        ? Text(
-                            'Đã đánh giá',
-                            style: TextStyle(
-                              color: AppColors.textSecondary.withValues(alpha: 0.8),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          )
-                        : ElevatedButton(
-                            onPressed: () => _openReviewDialog(context),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: const Text(
-                              'Viết đánh giá',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 12,
-                              ),
-                            ),
+                  ] else if (booking.hasReview || booking.canReview) ...[
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: OutlinedButton.icon(
+                        onPressed: booking.hasReview
+                            ? null
+                            : () => _openReviewSheet(context),
+                        icon: Icon(
+                          booking.hasReview
+                              ? Icons.check_circle_rounded
+                              : Icons.rate_review_rounded,
+                          size: 16,
+                        ),
+                        label: Text(
+                          booking.hasReview ? 'Đã đánh giá' : 'Đánh giá',
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: booking.hasReview
+                              ? AppColors.textSecondary
+                              : AppColors.primary,
+                          side: BorderSide(
+                            color: booking.hasReview
+                                ? AppColors.border
+                                : AppColors.primary,
+                            width: 1.2,
                           ),
-                  ),
-                ],
-              ],
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _openReviewDialog(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (_) => WriteReviewDialog(
-        gymId: booking.gymId ?? 'fallback_gym_id',
-        gymName: booking.gymName ?? booking.title,
-        bookingId: booking.id,
+          ],
+        ),
       ),
     );
   }

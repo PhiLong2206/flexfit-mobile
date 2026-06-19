@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../catalog/data/repositories/catalog_repository.dart';
+import '../../../catalog/domain/entities/branch.dart';
 import '../../../catalog/domain/entities/gym.dart';
 import '../../../review/data/review_notifier.dart';
 import '../widgets/booking_bottom_bar.dart';
 import '../widgets/booking_theme.dart';
 import '../widgets/gym_image_slider.dart';
 import '../widgets/gym_info_card.dart';
+import '../widgets/gym_time_slot_sheet.dart';
 import 'booking_confirmation_page.dart';
 
 class GymDetailPage extends StatefulWidget {
@@ -27,25 +29,58 @@ class _GymDetailPageState extends State<GymDetailPage> {
   ];
 
   final _repository = CatalogRepository();
-  Future<Gym>? _future;
+  Future<_GymDetailData>? _future;
 
   @override
   void initState() {
     super.initState();
     final id = widget.gymId;
     if (id != null) {
-      _future = _repository.getGymById(id);
+      _future = _load(id);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         context.read<ReviewNotifier>().fetchGymReviews(id);
       });
     }
   }
 
+  Future<_GymDetailData> _load(String gymId) async {
+    final gym = await _repository.getGymById(gymId);
+    final branches = await _repository.getBranches();
+    return _GymDetailData(gym: gym, branches: branches);
+  }
+
   void _reload() {
     final id = widget.gymId;
     if (id != null) {
-      setState(() => _future = _repository.getGymById(id));
+      setState(() {
+        _future = _load(id);
+      });
     }
+  }
+
+  Future<void> _selectTimeAndContinue(Gym gym, Branch branch) async {
+    final selection = await showGymTimeSlotSheet(
+      context: context,
+      gymName: gym.name,
+      branch: branch,
+    );
+    if (!mounted || selection == null) {
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => BookingConfirmationPage(
+          gymName: gym.name,
+          address: selection.branch.displayAddress,
+          branchName: selection.branch.name,
+          rating: gym.ratingAverage,
+          creditCost: selection.branch.creditCost,
+          branchId: selection.branch.id,
+          startTime: selection.startTime,
+          endTime: selection.endTime,
+        ),
+      ),
+    );
   }
 
   @override
@@ -60,7 +95,7 @@ class _GymDetailPageState extends State<GymDetailPage> {
       );
     }
 
-    return FutureBuilder<Gym>(
+    return FutureBuilder<_GymDetailData>(
       future: future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -78,8 +113,11 @@ class _GymDetailPageState extends State<GymDetailPage> {
           );
         }
 
-        final gym = snapshot.data!;
+        final data = snapshot.data!;
+        final gym = data.gym;
+        final branch = data.primaryBranch;
         final images = [
+          if (branch?.thumbnailUrl != null) branch!.thumbnailUrl!,
           if (gym.thumbnailUrl != null) gym.thumbnailUrl!,
           ..._fallbackImages,
         ];
@@ -87,23 +125,10 @@ class _GymDetailPageState extends State<GymDetailPage> {
         return Scaffold(
           backgroundColor: BookingTheme.background,
           bottomNavigationBar: BookingBottomBar(
-            creditCost: 0,
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => BookingConfirmationPage(
-                    gymName: gym.name,
-                    address: gym.description ?? gym.status,
-                    rating: gym.ratingAverage,
-                    creditCost: 0,
-                    // TODO: Pass a real BranchId once the mobile flow exposes
-                    // branches. POST /api/bookings/gym requires BranchId, but
-                    // GET /api/gyms and GET /api/gyms/{id} only return GymDto.
-                    branchId: null,
-                  ),
-                ),
-              );
-            },
+            creditCost: branch?.creditCost ?? 0,
+            onPressed: branch == null
+                ? null
+                : () => _selectTimeAndContinue(gym, branch),
           ),
           body: SafeArea(
             top: false,
@@ -117,13 +142,18 @@ class _GymDetailPageState extends State<GymDetailPage> {
                       sliver: SliverToBoxAdapter(
                         child: GymInfoCard(
                           name: gym.name,
-                          address: gym.description ?? gym.status,
+                          address:
+                              branch?.displayAddress ??
+                              gym.description ??
+                              gym.email ??
+                              gym.status,
                           rating: gym.ratingAverage,
-                          creditCost: 0,
-                          openingHours: 'Xem lịch chi nhánh',
+                          creditCost: branch?.creditCost ?? 0,
+                          openingHours: _openingHoursLabel(branch),
                           duration: '60 phút',
                           description: gym.description ?? 'Chưa có mô tả.',
                           amenities: [
+                            if (branch != null) branch.name,
                             if (gym.phoneNumber != null) gym.phoneNumber!,
                             if (gym.email != null) gym.email!,
                             '${gym.totalReviews} đánh giá',
@@ -284,6 +314,17 @@ class _GymDetailPageState extends State<GymDetailPage> {
   }
 }
 
+class _GymDetailData {
+  const _GymDetailData({required this.gym, required this.branches});
+
+  final Gym gym;
+  final List<Branch> branches;
+
+  Branch? get primaryBranch {
+    return CatalogRepository().resolveBranchForGym(gym, branches);
+  }
+}
+
 class _GymDetailScaffold extends StatelessWidget {
   const _GymDetailScaffold({required this.child});
 
@@ -371,4 +412,26 @@ class _FloatingBackButton extends StatelessWidget {
       ),
     );
   }
+}
+
+String _openingHoursLabel(Branch? branch) {
+  final open = _formatApiTime(branch?.openTime) ?? '05:00';
+  final close = _formatApiTime(branch?.closeTime) ?? '22:00';
+  return '$open - $close';
+}
+
+String? _formatApiTime(String? value) {
+  if (value == null || value.trim().isEmpty) {
+    return null;
+  }
+  final parts = value.split(':');
+  if (parts.length < 2) {
+    return null;
+  }
+  final hour = int.tryParse(parts[0]);
+  final minute = int.tryParse(parts[1]);
+  if (hour == null || minute == null) {
+    return null;
+  }
+  return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 }

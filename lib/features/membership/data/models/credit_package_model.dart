@@ -3,6 +3,7 @@ class CreditPackageModel {
     required this.id,
     required this.name,
     required this.creditAmount,
+    required this.bonusCredit,
     required this.price,
     this.description,
     required this.isActive,
@@ -12,6 +13,7 @@ class CreditPackageModel {
   final String id;
   final String name;
   final int creditAmount;
+  final int bonusCredit;
   final double price;
   final String? description;
   final bool isActive;
@@ -19,16 +21,22 @@ class CreditPackageModel {
 
   factory CreditPackageModel.fromJson(Map<String, dynamic> json) {
     return CreditPackageModel(
-      id: _read(json, 'packageId').toString(),
-      name: _read(json, 'packageName')?.toString() ?? 'Gói Credit',
+      id: (_read(json, 'packageId') ?? _read(json, 'id')).toString(),
+      name:
+          (_read(json, 'packageName') ?? _read(json, 'name'))?.toString() ??
+          'Gói Credit',
       creditAmount:
           int.tryParse(_read(json, 'creditAmount')?.toString() ?? '') ?? 0,
+      bonusCredit:
+          int.tryParse(_read(json, 'bonusCredit')?.toString() ?? '') ?? 0,
       price: double.tryParse(_read(json, 'price')?.toString() ?? '') ?? 0,
       description: _read(json, 'description')?.toString(),
-      isActive: _read(json, 'isActive') == true,
+      isActive: _read(json, 'isActive') != false,
       isPopular: _read(json, 'isPopular') == true,
     );
   }
+
+  int get totalCredit => creditAmount + bonusCredit;
 }
 
 class UserCreditModel {

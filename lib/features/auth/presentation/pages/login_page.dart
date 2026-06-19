@@ -1,11 +1,21 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/services/api_client.dart';
 import '../widgets/auth_button.dart';
+import '../widgets/auth_google_web_button.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/auth_social_button.dart';
 import '../widgets/auth_text_field.dart';
 import '../widgets/auth_theme.dart';
+import '../../../../core/services/local_storage.dart';
 import '../../data/repositories/auth_repository_impl.dart';
+import '../../data/services/google_login_exception.dart';
+import '../providers/auth_provider.dart';
 import '../../../home/presentation/pages/home_page.dart';
 import 'register_page.dart';
 
@@ -20,12 +30,38 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authRepository = AuthRepositoryImpl();
+  final _authProvider = AuthProvider();
+  StreamSubscription<GoogleSignInAuthenticationEvent>? _googleAuthSubscription;
+  bool _isGoogleWebLoading = false;
   bool _rememberMe = true;
   bool _hidePassword = true;
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    debugPrint('LoginPage initState');
+
+    try {
+      _authProvider.addListener(_handleAuthProviderChanged);
+      if (kIsWeb) {
+        unawaited(_initializeGoogleSignInForWeb());
+        _googleAuthSubscription = GoogleSignIn.instance.authenticationEvents
+            .listen(_handleGoogleAuthEvent, onError: _handleGoogleAuthError);
+      }
+    } catch (error, stackTrace) {
+      debugPrint('LoginPage async init failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+
+    unawaited(_loadRememberedCredentials());
+  }
+
+  @override
   void dispose() {
+    _googleAuthSubscription?.cancel();
+    _authProvider.removeListener(_handleAuthProviderChanged);
+    _authProvider.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -33,6 +69,13 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('LoginPage build start');
+    debugPrint(
+      kIsWeb
+          ? 'before rendering Google button: web'
+          : 'before rendering Google button: mobile',
+    );
+
     return Scaffold(
       backgroundColor: AuthTheme.background,
       body: SafeArea(
@@ -109,12 +152,14 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 24),
               const _DividerText(text: 'Hoặc tiếp tục với'),
               const SizedBox(height: 18),
-              AuthSocialButton(
-                label: 'Tiếp tục với Google',
-                onPressed: () {
-                  debugPrint('Google login tapped');
-                },
-              ),
+              if (kIsWeb)
+                AuthGoogleWebButton(isLoading: _isGoogleWebLoading)
+              else
+                AuthSocialButton(
+                  label: 'Tiếp tục với Google',
+                  isLoading: _authProvider.isGoogleLoading,
+                  onPressed: _loginWithGoogle,
+                ),
               const SizedBox(height: 28),
               _BottomPrompt(
                 text: 'Chưa có tài khoản?',
@@ -148,12 +193,21 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
     try {
       await _authRepository.login(email: email, password: password);
+      if (_rememberMe) {
+        await LocalStorage.saveRememberedCredentials(
+          email: email,
+          password: password,
+        );
+      } else {
+        await LocalStorage.clearRememberedCredentials();
+      }
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute<void>(
           settings: const RouteSettings(name: HomePage.routeName),
           builder: (_) => const HomePage(),
         ),
+        (_) => false,
       );
     } catch (error) {
       if (!mounted) return;
@@ -162,6 +216,112 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  Future<void> _loadRememberedCredentials() async {
+    try {
+      final credentials = await LocalStorage.getRememberedCredentials();
+      if (!mounted) return;
+      setState(() {
+        _rememberMe = credentials.rememberMe;
+        _emailController.text = credentials.email;
+        _passwordController.text = credentials.password;
+      });
+    } catch (error, stackTrace) {
+      debugPrint('Loading remembered credentials failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
+  void _handleAuthProviderChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _initializeGoogleSignInForWeb() async {
+    final clientId = AppConstants.googleClientId.trim();
+    if (clientId.isEmpty) {
+      _showSnackBar('Google đăng nhập chưa được cấu hình.');
+      return;
+    }
+
+    try {
+      await GoogleSignIn.instance.initialize(clientId: clientId);
+      if (kDebugMode) {
+        debugPrint('Google ClientId used: $clientId');
+        debugPrint('Google OAuth origin: ${AppConstants.googleOAuthOrigin}');
+      }
+    } on StateError catch (error) {
+      if (!error.toString().contains('init() has already been called')) {
+        rethrow;
+      }
+    } catch (error) {
+      if (!mounted) return;
+      _showSnackBar(_googleLoginErrorMessage(error));
+    }
+  }
+
+  Future<void> _handleGoogleAuthEvent(
+    GoogleSignInAuthenticationEvent event,
+  ) async {
+    if (event is! GoogleSignInAuthenticationEventSignIn) {
+      return;
+    }
+    await _completeGoogleWebLogin(event.user);
+  }
+
+  void _handleGoogleAuthError(Object error) {
+    if (!mounted) return;
+    _showSnackBar(_googleLoginErrorMessage(error));
+  }
+
+  Future<void> _completeGoogleWebLogin(GoogleSignInAccount account) async {
+    if (_isGoogleWebLoading) {
+      return;
+    }
+
+    setState(() => _isGoogleWebLoading = true);
+    try {
+      final idToken = account.authentication.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw const GoogleLoginException('Không lấy được Google ID Token.');
+      }
+
+      await _authRepository.googleLoginWithIdToken(idToken);
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(
+          settings: const RouteSettings(name: HomePage.routeName),
+          builder: (_) => const HomePage(),
+        ),
+        (_) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showSnackBar(_googleLoginErrorMessage(error));
+    } finally {
+      if (mounted) {
+        setState(() => _isGoogleWebLoading = false);
+      }
+    }
+  }
+
+  Future<void> _loginWithGoogle() async {
+    try {
+      await _authProvider.googleLogin();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(
+          settings: const RouteSettings(name: HomePage.routeName),
+          builder: (_) => const HomePage(),
+        ),
+        (_) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showSnackBar(_googleLoginErrorMessage(error));
     }
   }
 
@@ -199,6 +359,20 @@ class _LoginPageState extends State<LoginPage> {
       return 'Mật khẩu không đúng';
     }
     return 'Đăng nhập thất bại';
+  }
+
+  String _googleLoginErrorMessage(Object error) {
+    if (error is GoogleLoginException) {
+      return error.message;
+    }
+    if (error is ApiException) {
+      final body = error.body?.trim();
+      if (body != null && body.isNotEmpty) {
+        return body;
+      }
+      return error.message;
+    }
+    return error.toString();
   }
 
   void _showSnackBar(String message) {
