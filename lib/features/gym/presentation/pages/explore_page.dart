@@ -12,7 +12,6 @@ class ExploreGym {
   final String distance;
   final String categoryName;
   final String imageUrl;
-  final bool isFavorite;
 
   const ExploreGym({
     required this.id,
@@ -22,30 +21,7 @@ class ExploreGym {
     required this.distance,
     required this.categoryName,
     required this.imageUrl,
-    required this.isFavorite,
   });
-
-  ExploreGym copyWith({
-    String? id,
-    String? name,
-    String? address,
-    double? rating,
-    String? distance,
-    String? categoryName,
-    String? imageUrl,
-    bool? isFavorite,
-  }) {
-    return ExploreGym(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      address: address ?? this.address,
-      rating: rating ?? this.rating,
-      distance: distance ?? this.distance,
-      categoryName: categoryName ?? this.categoryName,
-      imageUrl: imageUrl ?? this.imageUrl,
-      isFavorite: isFavorite ?? this.isFavorite,
-    );
-  }
 
   factory ExploreGym.fromJson(Map<String, dynamic> json) {
     return ExploreGym(
@@ -56,7 +32,6 @@ class ExploreGym {
       distance: json['distance'] as String,
       categoryName: json['categoryName'] as String,
       imageUrl: json['imageUrl'] as String,
-      isFavorite: json['isFavorite'] as bool? ?? false,
     );
   }
 
@@ -69,7 +44,6 @@ class ExploreGym {
       'distance': distance,
       'categoryName': categoryName,
       'imageUrl': imageUrl,
-      'isFavorite': isFavorite,
     };
   }
 }
@@ -84,7 +58,6 @@ class ExploreClass {
   final String duration;
   final int credit;
   final String imageUrl;
-  final bool isFavorite;
 
   const ExploreClass({
     required this.id,
@@ -96,34 +69,7 @@ class ExploreClass {
     required this.duration,
     required this.credit,
     required this.imageUrl,
-    required this.isFavorite,
   });
-
-  ExploreClass copyWith({
-    String? id,
-    String? title,
-    String? branchId,
-    String? branchName,
-    String? categoryId,
-    String? categoryName,
-    String? duration,
-    int? credit,
-    String? imageUrl,
-    bool? isFavorite,
-  }) {
-    return ExploreClass(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      branchId: branchId ?? this.branchId,
-      branchName: branchName ?? this.branchName,
-      categoryId: categoryId ?? this.categoryId,
-      categoryName: categoryName ?? this.categoryName,
-      duration: duration ?? this.duration,
-      credit: credit ?? this.credit,
-      imageUrl: imageUrl ?? this.imageUrl,
-      isFavorite: isFavorite ?? this.isFavorite,
-    );
-  }
 
   factory ExploreClass.fromJson(Map<String, dynamic> json) {
     return ExploreClass(
@@ -136,7 +82,6 @@ class ExploreClass {
       duration: json['duration'] as String,
       credit: json['credit'] as int,
       imageUrl: json['imageUrl'] as String,
-      isFavorite: json['isFavorite'] as bool? ?? false,
     );
   }
 
@@ -151,7 +96,6 @@ class ExploreClass {
       'duration': duration,
       'credit': credit,
       'imageUrl': imageUrl,
-      'isFavorite': isFavorite,
     };
   }
 }
@@ -169,7 +113,6 @@ const List<ExploreGym> _mockGyms = [
     distance: '1.2 km',
     categoryName: 'Gym',
     imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=600',
-    isFavorite: true,
   ),
   ExploreGym(
     id: 'g2',
@@ -179,7 +122,6 @@ const List<ExploreGym> _mockGyms = [
     distance: '2.5 km',
     categoryName: 'Yoga',
     imageUrl: 'https://images.unsplash.com/photo-1545205597-3d9d02c29597?q=80&w=600',
-    isFavorite: false,
   ),
   ExploreGym(
     id: 'g3',
@@ -189,7 +131,6 @@ const List<ExploreGym> _mockGyms = [
     distance: '4.8 km',
     categoryName: 'Boxing',
     imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=600',
-    isFavorite: true,
   ),
   ExploreGym(
     id: 'g4',
@@ -199,7 +140,6 @@ const List<ExploreGym> _mockGyms = [
     distance: '3.1 km',
     categoryName: 'HIIT',
     imageUrl: 'https://images.unsplash.com/photo-1571731979149-75be89323c59?q=80&w=600',
-    isFavorite: false,
   ),
   ExploreGym(
     id: 'g5',
@@ -209,7 +149,6 @@ const List<ExploreGym> _mockGyms = [
     distance: '0.8 km',
     categoryName: 'Zumba',
     imageUrl: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?q=80&w=600',
-    isFavorite: false,
   ),
 ];
 
@@ -224,7 +163,6 @@ const List<ExploreClass> _mockClasses = [
     duration: '60 phút',
     credit: 15,
     imageUrl: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?q=80&w=600',
-    isFavorite: true,
   ),
   ExploreClass(
     id: 'c2',
@@ -236,7 +174,6 @@ const List<ExploreClass> _mockClasses = [
     duration: '75 phút',
     credit: 12,
     imageUrl: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=600',
-    isFavorite: false,
   ),
   ExploreClass(
     id: 'c3',
@@ -248,7 +185,6 @@ const List<ExploreClass> _mockClasses = [
     duration: '90 phút',
     credit: 20,
     imageUrl: 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?q=80&w=600',
-    isFavorite: true,
   ),
   ExploreClass(
     id: 'c4',
@@ -260,7 +196,6 @@ const List<ExploreClass> _mockClasses = [
     duration: '45 phút',
     credit: 10,
     imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=600',
-    isFavorite: false,
   ),
   ExploreClass(
     id: 'c5',
@@ -272,7 +207,6 @@ const List<ExploreClass> _mockClasses = [
     duration: '60 phút',
     credit: 8,
     imageUrl: 'https://images.unsplash.com/photo-1524594152303-9fd13543dd6e?q=80&w=600',
-    isFavorite: false,
   ),
   ExploreClass(
     id: 'c6',
@@ -284,7 +218,6 @@ const List<ExploreClass> _mockClasses = [
     duration: '90 phút',
     credit: 18,
     imageUrl: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=600',
-    isFavorite: false,
   ),
 ];
 
@@ -296,14 +229,13 @@ class ExplorePage extends StatefulWidget {
 }
 
 class _ExplorePageState extends State<ExplorePage> {
-  // Styles & colors matching FlexFit aesthetics
   static const Color _backgroundColor = Color(0xFF070B14);
   static const Color _cardColor = Color(0xFF111827);
   static const Color _primaryOrange = Color(0xFFFF6B16);
 
   late final TextEditingController _searchController;
   String _searchQuery = '';
-  String _selectedCategory = 'All';
+  String _selectedCategory = 'Tất cả';
   String _selectedTab = 'Gyms';
 
   late List<ExploreGym> _gyms;
@@ -313,11 +245,6 @@ class _ExplorePageState extends State<ExplorePage> {
   void initState() {
     super.initState();
     _searchController = TextEditingController();
-
-    // API-Ready Note:
-    // Future API mapping can load data here using repositories:
-    // _gyms = await _catalogRepository.getGyms();
-    // _classes = await _catalogRepository.getClasses();
     _gyms = List.from(_mockGyms);
     _classes = List.from(_mockClasses);
   }
@@ -328,63 +255,7 @@ class _ExplorePageState extends State<ExplorePage> {
     super.dispose();
   }
 
-  // ==========================================
-  // API INTEGRATION PLACEHOLDERS / CALLBACKS
-  // ==========================================
-
-  void _toggleGymFavorite(String gymId) {
-    // API-Ready Note:
-    // Connect to POST /api/favorite-gyms/toggle/{gymId}
-    setState(() {
-      _gyms = _gyms.map((gym) {
-        if (gym.id == gymId) {
-          final updated = gym.copyWith(isFavorite: !gym.isFavorite);
-          ScaffoldMessenger.of(context).clearSnackBars();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                updated.isFavorite
-                    ? 'Đã thêm "${gym.name}" vào danh sách yêu thích.'
-                    : 'Đã xóa "${gym.name}" khỏi danh sách yêu thích.',
-              ),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-          return updated;
-        }
-        return gym;
-      }).toList();
-    });
-  }
-
-  void _toggleClassFavorite(String classId) {
-    // API-Ready Note:
-    // Connect to POST /api/favorite-classes/toggle/{classId}
-    setState(() {
-      _classes = _classes.map((cls) {
-        if (cls.id == classId) {
-          final updated = cls.copyWith(isFavorite: !cls.isFavorite);
-          ScaffoldMessenger.of(context).clearSnackBars();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                updated.isFavorite
-                    ? 'Đã thêm "${cls.title}" vào danh sách yêu thích.'
-                    : 'Đã xóa "${cls.title}" khỏi danh sách yêu thích.',
-              ),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-          return updated;
-        }
-        return cls;
-      }).toList();
-    });
-  }
-
   void _onViewGym(ExploreGym gym) {
-    // API-Ready Note:
-    // Navigate to GymDetail or load GET /api/gyms/{id}
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -400,8 +271,6 @@ class _ExplorePageState extends State<ExplorePage> {
   }
 
   void _onBookClass(ExploreClass item) {
-    // API-Ready Note:
-    // Connect to POST /api/bookings / book class
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -444,7 +313,7 @@ class _ExplorePageState extends State<ExplorePage> {
                 border: Border.all(color: _primaryOrange.withValues(alpha: 0.3)),
               ),
               child: const Text(
-                'Explore',
+                'Khám phá',
                 style: TextStyle(
                   color: _primaryOrange,
                   fontWeight: FontWeight.bold,
@@ -505,7 +374,7 @@ class _ExplorePageState extends State<ExplorePage> {
   }
 
   Widget _buildCategoryChips() {
-    final categories = ['All', 'Gym', 'Yoga', 'Boxing', 'HIIT', 'Zumba'];
+    final categories = ['Tất cả', 'Gym', 'Yoga', 'Boxing', 'HIIT', 'Zumba'];
     return SizedBox(
       height: 40,
       child: ListView.separated(
@@ -547,7 +416,7 @@ class _ExplorePageState extends State<ExplorePage> {
   }
 
   Widget _buildTabSwitcher() {
-    final tabs = ['Gyms', 'Classes', 'Favorites'];
+    final tabs = ['Gyms', 'Classes'];
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -573,11 +442,7 @@ class _ExplorePageState extends State<ExplorePage> {
                 ),
                 child: Center(
                   child: Text(
-                    tab == 'Gyms'
-                        ? 'Phòng gym'
-                        : tab == 'Classes'
-                            ? 'Lớp học'
-                            : 'Yêu thích',
+                    tab == 'Gyms' ? 'Phòng gym' : 'Lớp học',
                     style: TextStyle(
                       color: isSelected ? Colors.white : Colors.white60,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
@@ -637,7 +502,6 @@ class _ExplorePageState extends State<ExplorePage> {
                 left: 12,
                 child: Row(
                   children: [
-                    // Distance badge
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
@@ -657,7 +521,6 @@ class _ExplorePageState extends State<ExplorePage> {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    // Rating badge
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
@@ -677,21 +540,6 @@ class _ExplorePageState extends State<ExplorePage> {
                       ),
                     ),
                   ],
-                ),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Material(
-                  color: Colors.transparent,
-                  child: IconButton(
-                    icon: Icon(
-                      gym.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                      color: gym.isFavorite ? Colors.red : Colors.white,
-                      size: 26,
-                    ),
-                    onPressed: () => _toggleGymFavorite(gym.id),
-                  ),
                 ),
               ),
             ],
@@ -784,7 +632,6 @@ class _ExplorePageState extends State<ExplorePage> {
                 left: 12,
                 child: Row(
                   children: [
-                    // Credit badge
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
@@ -797,7 +644,6 @@ class _ExplorePageState extends State<ExplorePage> {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    // Duration badge
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
@@ -817,21 +663,6 @@ class _ExplorePageState extends State<ExplorePage> {
                       ),
                     ),
                   ],
-                ),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Material(
-                  color: Colors.transparent,
-                  child: IconButton(
-                    icon: Icon(
-                      item.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                      color: item.isFavorite ? Colors.red : Colors.white,
-                      size: 26,
-                    ),
-                    onPressed: () => _toggleClassFavorite(item.id),
-                  ),
                 ),
               ),
             ],
@@ -969,62 +800,11 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  Widget _buildFavoriteList(List<ExploreGym> favGyms, List<ExploreClass> favClasses) {
-    if (favGyms.isEmpty && favClasses.isEmpty) {
-      return _buildEmptyState(
-        icon: Icons.favorite_border_rounded,
-        message: 'Chưa có mục yêu thích nào.\nHãy bấm vào biểu tượng trái tim để lưu lại.',
-      );
-    }
-
-    return ListView(
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      padding: EdgeInsets.zero,
-      children: [
-        if (favGyms.isNotEmpty) ...[
-          const Padding(
-            padding: EdgeInsets.only(top: 8, bottom: 12),
-            child: Text(
-              'Phòng gym yêu thích',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-          ),
-          ...favGyms.map((gym) => Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _buildGymCard(gym),
-              )),
-        ],
-        if (favClasses.isNotEmpty) ...[
-          const Padding(
-            padding: EdgeInsets.only(top: 8, bottom: 12),
-            child: Text(
-              'Lớp học yêu thích',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-          ),
-          ...favClasses.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _buildClassCard(item),
-              )),
-        ],
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     // Apply search and category filters
     final filteredGyms = _gyms.where((gym) {
-      final matchesCategory = _selectedCategory == 'All' ||
+      final matchesCategory = _selectedCategory == 'Tất cả' ||
           gym.categoryName.toLowerCase() == _selectedCategory.toLowerCase();
       final query = _searchQuery.toLowerCase().trim();
       final matchesSearch = query.isEmpty ||
@@ -1035,7 +815,7 @@ class _ExplorePageState extends State<ExplorePage> {
     }).toList();
 
     final filteredClasses = _classes.where((cls) {
-      final matchesCategory = _selectedCategory == 'All' ||
+      final matchesCategory = _selectedCategory == 'Tất cả' ||
           cls.categoryName.toLowerCase() == _selectedCategory.toLowerCase();
       final query = _searchQuery.toLowerCase().trim();
       final matchesSearch = query.isEmpty ||
@@ -1044,9 +824,6 @@ class _ExplorePageState extends State<ExplorePage> {
           cls.categoryName.toLowerCase().contains(query);
       return matchesCategory && matchesSearch;
     }).toList();
-
-    final favGyms = filteredGyms.where((g) => g.isFavorite).toList();
-    final favClasses = filteredClasses.where((c) => c.isFavorite).toList();
 
     return Scaffold(
       backgroundColor: _backgroundColor,
@@ -1066,10 +843,8 @@ class _ExplorePageState extends State<ExplorePage> {
               const SizedBox(height: 20),
               if (_selectedTab == 'Gyms')
                 _buildGymList(filteredGyms)
-              else if (_selectedTab == 'Classes')
-                _buildClassList(filteredClasses)
               else
-                _buildFavoriteList(favGyms, favClasses),
+                _buildClassList(filteredClasses),
             ],
           ),
         ),
