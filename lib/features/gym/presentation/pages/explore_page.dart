@@ -12,6 +12,7 @@ class ExploreGym {
   final String distance;
   final String categoryName;
   final String imageUrl;
+  final int credit;
 
   const ExploreGym({
     required this.id,
@@ -21,6 +22,7 @@ class ExploreGym {
     required this.distance,
     required this.categoryName,
     required this.imageUrl,
+    required this.credit,
   });
 
   factory ExploreGym.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,7 @@ class ExploreGym {
       distance: json['distance'] as String,
       categoryName: json['categoryName'] as String,
       imageUrl: json['imageUrl'] as String,
+      credit: json['credit'] as int? ?? 0,
     );
   }
 
@@ -44,6 +47,7 @@ class ExploreGym {
       'distance': distance,
       'categoryName': categoryName,
       'imageUrl': imageUrl,
+      'credit': credit,
     };
   }
 }
@@ -113,6 +117,7 @@ const List<ExploreGym> _mockGyms = [
     distance: '1.2 km',
     categoryName: 'Gym',
     imageUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=600',
+    credit: 15,
   ),
   ExploreGym(
     id: 'g2',
@@ -122,6 +127,7 @@ const List<ExploreGym> _mockGyms = [
     distance: '2.5 km',
     categoryName: 'Yoga',
     imageUrl: 'https://images.unsplash.com/photo-1545205597-3d9d02c29597?q=80&w=600',
+    credit: 12,
   ),
   ExploreGym(
     id: 'g3',
@@ -131,6 +137,7 @@ const List<ExploreGym> _mockGyms = [
     distance: '4.8 km',
     categoryName: 'Boxing',
     imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=600',
+    credit: 20,
   ),
   ExploreGym(
     id: 'g4',
@@ -140,6 +147,7 @@ const List<ExploreGym> _mockGyms = [
     distance: '3.1 km',
     categoryName: 'HIIT',
     imageUrl: 'https://images.unsplash.com/photo-1571731979149-75be89323c59?q=80&w=600',
+    credit: 10,
   ),
   ExploreGym(
     id: 'g5',
@@ -149,6 +157,7 @@ const List<ExploreGym> _mockGyms = [
     distance: '0.8 km',
     categoryName: 'Zumba',
     imageUrl: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?q=80&w=600',
+    credit: 8,
   ),
 ];
 
@@ -542,6 +551,21 @@ class _ExplorePageState extends State<ExplorePage> {
                   ],
                 ),
               ),
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _primaryOrange,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${gym.credit} Credit',
+                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
             ],
           ),
           Padding(
@@ -601,7 +625,7 @@ class _ExplorePageState extends State<ExplorePage> {
                     ),
                     onPressed: () => _onViewGym(gym),
                     child: const Text(
-                      'Chi tiết phòng tập',
+                      'Xem chi tiết',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
