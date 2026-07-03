@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/services/api_client.dart';
+import '../../../../core/network/api_client.dart';
 import '../../data/models/booking_model.dart';
 import '../../data/repositories/review_repository.dart';
 import 'booking_theme.dart';

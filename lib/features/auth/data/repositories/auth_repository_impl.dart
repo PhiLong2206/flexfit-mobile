@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/services/local_storage.dart';
+import '../../../../core/network/local_storage.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_data_source.dart';
@@ -53,6 +53,7 @@ class AuthRepositoryImpl implements AuthRepository {
     return googleLoginWithIdToken(idToken);
   }
 
+  @override
   Future<AuthSession> googleLoginWithIdToken(String idToken) async {
     debugPrint('Sending Google token to backend');
     final session = await _remoteDataSource.googleLogin(idToken: idToken);

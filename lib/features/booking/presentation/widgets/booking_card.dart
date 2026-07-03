@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../profile/data/models/booking_item.dart';
 import '../../data/models/booking_model.dart';
-import '../pages/booking_detail_page.dart';
+import '../screens/booking_detail_page.dart';
 import '../providers/booking_provider.dart';
 import 'review_bottom_sheet.dart';
 

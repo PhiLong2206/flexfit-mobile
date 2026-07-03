@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../gym/presentation/pages/explore_page.dart';
+import '../../../gym/presentation/screens/explore_page.dart';
 import '../../../profile/data/models/booking_item.dart';
 import '../providers/booking_provider.dart';
 import 'booking_card.dart';

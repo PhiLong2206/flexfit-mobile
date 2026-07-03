@@ -4,6 +4,7 @@ abstract class AuthRepository {
   Future<AuthSession> login({required String email, required String password});
 
   Future<AuthSession> googleLogin();
+  Future<AuthSession> googleLoginWithIdToken(String idToken);
 
   Future<void> register({
     required String fullName,

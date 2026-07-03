@@ -1,13 +1,12 @@
 import 'package:flutter/foundation.dart';
 
-import '../../data/repositories/auth_repository_impl.dart';
-import '../../domain/repositories/auth_repository.dart';
+import '../../domain/usecases/google_login_usecase.dart';
 
 class AuthProvider extends ChangeNotifier {
-  AuthProvider({AuthRepository? authRepository})
-    : _authRepository = authRepository ?? AuthRepositoryImpl();
+  AuthProvider({required GoogleLoginUseCase googleLoginUseCase})
+    : _googleLoginUseCase = googleLoginUseCase;
 
-  final AuthRepository _authRepository;
+  final GoogleLoginUseCase _googleLoginUseCase;
 
   bool _isLoading = false;
   bool _isGoogleLoading = false;
@@ -23,7 +22,7 @@ class AuthProvider extends ChangeNotifier {
     }
     _setGoogleLoading(true);
     try {
-      await _authRepository.googleLogin();
+      await _googleLoginUseCase();
       _error = null;
     } catch (error) {
       _error = error.toString();

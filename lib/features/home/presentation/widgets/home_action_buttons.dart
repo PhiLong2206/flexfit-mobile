@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../gym/presentation/pages/explore_page.dart';
+import '../../../gym/presentation/screens/explore_page.dart';
 
 class HomeActionButtons extends StatelessWidget {
   const HomeActionButtons({super.key});

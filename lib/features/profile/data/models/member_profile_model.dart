@@ -1,3 +1,5 @@
+import '../../domain/entities/profile.dart';
+
 class MemberProfileModel {
   const MemberProfileModel({
     required this.fullName,
@@ -94,6 +96,40 @@ class MemberProfileModel {
       activityLevel: activityLevel ?? this.activityLevel,
       preferredWorkoutTime: preferredWorkoutTime ?? this.preferredWorkoutTime,
       bio: bio ?? this.bio,
+    );
+  }
+
+  Profile toEntity() {
+    return Profile(
+      fullName: fullName,
+      email: email,
+      phoneNumber: phoneNumber,
+      dateOfBirth: dateOfBirth,
+      gender: gender,
+      avatarUrl: avatarUrl,
+      heightCm: heightCm,
+      weightKg: weightKg,
+      fitnessGoal: fitnessGoal,
+      activityLevel: activityLevel,
+      preferredWorkoutTime: preferredWorkoutTime,
+      bio: bio,
+    );
+  }
+
+  factory MemberProfileModel.fromEntity(Profile profile) {
+    return MemberProfileModel(
+      fullName: profile.fullName,
+      email: profile.email,
+      phoneNumber: profile.phoneNumber,
+      dateOfBirth: profile.dateOfBirth,
+      gender: profile.gender,
+      avatarUrl: profile.avatarUrl,
+      heightCm: profile.heightCm,
+      weightKg: profile.weightKg,
+      fitnessGoal: profile.fitnessGoal,
+      activityLevel: profile.activityLevel,
+      preferredWorkoutTime: profile.preferredWorkoutTime,
+      bio: profile.bio,
     );
   }
 }

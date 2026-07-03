@@ -1,5 +1,5 @@
-import '../../../../core/services/api_client.dart';
-import '../../../../core/services/local_storage.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/network/local_storage.dart';
 import '../models/credit_package_model.dart';
 
 class CreditRepository {

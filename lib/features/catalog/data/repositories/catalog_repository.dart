@@ -1,4 +1,4 @@
-import '../../../../core/services/api_client.dart';
+import '../../../../core/network/api_client.dart';
 import '../../domain/entities/branch.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/fitness_class.dart';
