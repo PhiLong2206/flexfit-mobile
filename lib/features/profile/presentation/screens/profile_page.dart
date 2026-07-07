@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/network/local_storage.dart';
 import '../../../auth/presentation/screens/login_page.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../notification/presentation/widgets/notification_bell_button.dart';
 import '../../domain/entities/profile.dart';
 import '../providers/profile_provider.dart';
@@ -14,8 +15,13 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => sl<ProfileProvider>()..fetchProfile(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => sl<ProfileProvider>()..fetchProfile(),
+        ),
+        ChangeNotifierProvider(create: (_) => sl<AuthProvider>()),
+      ],
       child: const _ProfilePageView(),
     );
   }
@@ -134,6 +140,23 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
     );
   }
 
+  Future<void> _openChangePassword() async {
+    final changed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => ChangeNotifierProvider.value(
+        value: context.read<AuthProvider>(),
+        child: const _ChangePasswordDialog(),
+      ),
+    );
+
+    if (changed == true && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đổi mật khẩu thành công.')));
+    }
+  }
+
   String _initials(Profile profile) {
     final name = profile.fullName.trim();
     if (name.isEmpty) return 'FF';
@@ -212,6 +235,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                                         onSelectTab: (index) {
                                           setState(() => _selectedTab = index);
                                         },
+                                        onChangePassword: _openChangePassword,
                                         onLogout: _logout,
                                       ),
                                     ],
@@ -249,6 +273,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                                   onSelectTab: (index) {
                                     setState(() => _selectedTab = index);
                                   },
+                                  onChangePassword: _openChangePassword,
                                   onLogout: _logout,
                                 ),
                                 const SizedBox(height: 16),
@@ -336,10 +361,14 @@ class _ProfileCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: _ProfilePageViewState._primaryOrange.withValues(alpha: 0.09),
+              color: _ProfilePageViewState._primaryOrange.withValues(
+                alpha: 0.09,
+              ),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: _ProfilePageViewState._primaryOrange.withValues(alpha: 0.35),
+                color: _ProfilePageViewState._primaryOrange.withValues(
+                  alpha: 0.35,
+                ),
               ),
             ),
             child: const Text(
@@ -417,11 +446,13 @@ class _MenuCard extends StatelessWidget {
   const _MenuCard({
     required this.selectedTab,
     required this.onSelectTab,
+    required this.onChangePassword,
     required this.onLogout,
   });
 
   final int selectedTab;
   final ValueChanged<int> onSelectTab;
+  final VoidCallback onChangePassword;
   final VoidCallback onLogout;
 
   @override
@@ -445,6 +476,13 @@ class _MenuCard extends StatelessWidget {
           ),
           Divider(color: Colors.white.withValues(alpha: 0.08)),
           _MenuItem(
+            icon: Icons.lock_outline_rounded,
+            title: 'Đổi mật khẩu',
+            selected: false,
+            onTap: onChangePassword,
+          ),
+          Divider(color: Colors.white.withValues(alpha: 0.08)),
+          _MenuItem(
             icon: Icons.logout_rounded,
             title: 'Đăng xuất',
             danger: true,
@@ -453,6 +491,144 @@ class _MenuCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ChangePasswordDialog extends StatefulWidget {
+  const _ChangePasswordDialog();
+
+  @override
+  State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+}
+
+class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _obscurePasswords = true;
+
+  @override
+  void dispose() {
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    try {
+      await context.read<AuthProvider>().changePassword(
+        currentPassword: _currentPasswordController.text,
+        newPassword: _newPasswordController.text,
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (_) {
+      // AuthProvider exposes the backend message for the dialog to display.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<AuthProvider>();
+
+    return AlertDialog(
+      backgroundColor: _ProfilePageViewState._cardColor,
+      title: const Text('Đổi mật khẩu'),
+      content: SizedBox(
+        width: 420,
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _passwordField(
+                  controller: _currentPasswordController,
+                  label: 'Mật khẩu hiện tại',
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Vui lòng nhập mật khẩu hiện tại.'
+                      : null,
+                ),
+                const SizedBox(height: 14),
+                _passwordField(
+                  controller: _newPasswordController,
+                  label: 'Mật khẩu mới',
+                  validator: (value) => value == null || value.length < 6
+                      ? 'Mật khẩu mới phải có ít nhất 6 ký tự.'
+                      : null,
+                ),
+                const SizedBox(height: 14),
+                _passwordField(
+                  controller: _confirmPasswordController,
+                  label: 'Xác nhận mật khẩu mới',
+                  validator: (value) => value != _newPasswordController.text
+                      ? 'Mật khẩu xác nhận không khớp.'
+                      : null,
+                ),
+                if (provider.error != null) ...[
+                  const SizedBox(height: 14),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      provider.error!,
+                      style: const TextStyle(color: Colors.redAccent),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: provider.isChangingPassword
+              ? null
+              : () => Navigator.of(context).pop(false),
+          child: const Text('Hủy'),
+        ),
+        FilledButton(
+          onPressed: provider.isChangingPassword ? null : _submit,
+          child: provider.isChangingPassword
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Đổi mật khẩu'),
+        ),
+      ],
+    );
+  }
+
+  TextFormField _passwordField({
+    required TextEditingController controller,
+    required String label,
+    required String? Function(String?) validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: _obscurePasswords,
+      autocorrect: false,
+      enableSuggestions: false,
+      textInputAction: TextInputAction.next,
+      validator: validator,
+      decoration: _inputDecoration(label: label, icon: Icons.lock_outline)
+          .copyWith(
+            suffixIcon: IconButton(
+              onPressed: () =>
+                  setState(() => _obscurePasswords = !_obscurePasswords),
+              icon: Icon(
+                _obscurePasswords
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+              ),
+            ),
+          ),
     );
   }
 }
@@ -844,7 +1020,9 @@ class _ProfileLoadingState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircularProgressIndicator(color: _ProfilePageViewState._primaryOrange),
+          CircularProgressIndicator(
+            color: _ProfilePageViewState._primaryOrange,
+          ),
           SizedBox(height: 14),
           Text(
             'Đang tải hồ sơ...',

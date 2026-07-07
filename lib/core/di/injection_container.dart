@@ -7,6 +7,7 @@ import '../../features/auth/domain/usecases/login_usecase.dart';
 import '../../features/auth/domain/usecases/register_usecase.dart';
 import '../../features/auth/domain/usecases/verify_email_usecase.dart';
 import '../../features/auth/domain/usecases/resend_otp_usecase.dart';
+import '../../features/auth/domain/usecases/change_password_usecase.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
@@ -35,21 +36,28 @@ Future<void> init() async {
   sl.registerLazySingleton(() => ApiClient());
 
   // Features - Auth
-  sl.registerFactory(() => AuthProvider(googleLoginUseCase: sl()));
+  sl.registerFactory(
+    () => AuthProvider(googleLoginUseCase: sl(), changePasswordUseCase: sl()),
+  );
   sl.registerLazySingleton(() => GoogleLoginWithIdTokenUseCase(sl()));
   sl.registerLazySingleton(() => GoogleLoginUseCase(sl()));
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => RegisterUseCase(sl()));
   sl.registerLazySingleton(() => VerifyEmailUseCase(sl()));
   sl.registerLazySingleton(() => ResendOtpUseCase(sl()));
-  sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(remoteDataSource: sl()));
+  sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(remoteDataSource: sl()),
+  );
   sl.registerLazySingleton(() => AuthRemoteDataSource(apiClient: sl()));
-  
+
   // Features - AI
   sl.registerLazySingleton(() => ChatWithAiUseCase(sl()));
   sl.registerLazySingleton(() => GetWorkoutSuggestionUseCase(sl()));
   sl.registerLazySingleton(() => GetClassSuggestionUseCase(sl()));
-  sl.registerLazySingleton<AiRepository>(() => AiRepositoryImpl(remoteDataSource: sl()));
+  sl.registerLazySingleton<AiRepository>(
+    () => AiRepositoryImpl(remoteDataSource: sl()),
+  );
   sl.registerLazySingleton(() => AiRemoteDataSource(apiClient: sl()));
 
   // Features - Booking
@@ -67,11 +75,17 @@ Future<void> init() async {
   // Features - Notification
 
   // Features - Profile
-  sl.registerFactory(() => ProfileProvider(getProfileUseCase: sl(), updateProfileUseCase: sl()));
+  sl.registerFactory(
+    () => ProfileProvider(getProfileUseCase: sl(), updateProfileUseCase: sl()),
+  );
   sl.registerLazySingleton(() => GetProfileUseCase(sl()));
   sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
-  sl.registerLazySingleton<ProfileRepository>(() => ProfileRepositoryImpl(sl()));
-  sl.registerLazySingleton<ProfileRemoteDataSource>(() => ProfileRemoteDataSourceImpl(apiClient: sl()));
+  sl.registerLazySingleton<ProfileRepository>(
+    () => ProfileRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton<ProfileRemoteDataSource>(
+    () => ProfileRemoteDataSourceImpl(apiClient: sl()),
+  );
 
   // Features - Explore
 }

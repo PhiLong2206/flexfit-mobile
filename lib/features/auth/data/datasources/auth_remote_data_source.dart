@@ -75,4 +75,14 @@ class AuthRemoteDataSource {
       body: {'email': email, 'reason': 'VERIFY_EMAIL'},
     );
   }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _apiClient.put(
+      '/Auth/change-password',
+      body: {'currentPassword': currentPassword, 'newPassword': newPassword},
+    );
+  }
 }

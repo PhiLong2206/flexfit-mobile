@@ -61,9 +61,14 @@ class ApiClient {
         : body is String
         ? body
         : jsonEncode(body);
+    final containsPassword = path.toLowerCase().contains('password');
 
     debugPrint('REQUEST $method $uri');
-    debugPrint('REQUEST BODY: $encodedBody');
+    debugPrint(
+      containsPassword
+          ? 'REQUEST BODY: [REDACTED]'
+          : 'REQUEST BODY: $encodedBody',
+    );
 
     final response = await _transport.send(
       method,
