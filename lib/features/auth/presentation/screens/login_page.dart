@@ -18,7 +18,7 @@ import '../../domain/usecases/google_login_with_id_token_usecase.dart';
 import '../../domain/usecases/login_usecase.dart';
 import '../../data/services/google_login_exception.dart';
 import '../providers/auth_provider.dart';
-import '../../../home/presentation/screens/home_page.dart';
+import '../routing/role_routing.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -194,7 +194,7 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => _isLoading = true);
     try {
-      await _loginUseCase(email: email, password: password);
+      final session = await _loginUseCase(email: email, password: password);
       if (_rememberMe) {
         await LocalStorage.saveRememberedCredentials(
           email: email,
@@ -204,13 +204,7 @@ class _LoginPageState extends State<LoginPage> {
         await LocalStorage.clearRememberedCredentials();
       }
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(
-          settings: const RouteSettings(name: HomePage.routeName),
-          builder: (_) => const HomePage(),
-        ),
-        (_) => false,
-      );
+      _openRolePage(session.roles);
     } catch (error) {
       if (!mounted) return;
       _showSnackBar(_loginErrorMessage(error));
@@ -291,15 +285,9 @@ class _LoginPageState extends State<LoginPage> {
         throw const GoogleLoginException('Không lấy được Google ID Token.');
       }
 
-      await sl<GoogleLoginWithIdTokenUseCase>()(idToken);
+      final session = await sl<GoogleLoginWithIdTokenUseCase>()(idToken);
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(
-          settings: const RouteSettings(name: HomePage.routeName),
-          builder: (_) => const HomePage(),
-        ),
-        (_) => false,
-      );
+      _openRolePage(session.roles);
     } catch (error) {
       if (!mounted) return;
       _showSnackBar(_googleLoginErrorMessage(error));
@@ -312,19 +300,25 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _loginWithGoogle() async {
     try {
-      await _authProvider.googleLogin();
+      final session = await _authProvider.googleLogin();
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(
-          settings: const RouteSettings(name: HomePage.routeName),
-          builder: (_) => const HomePage(),
-        ),
-        (_) => false,
-      );
+      _openRolePage(session.roles);
     } catch (error) {
       if (!mounted) return;
       _showSnackBar(_googleLoginErrorMessage(error));
     }
+  }
+
+  void _openRolePage(Iterable<String> roles) {
+    final resolvedRoles = roles.toList(growable: false);
+    debugPrint('Auth roles resolved: $resolvedRoles');
+    debugPrint('Route target: ${RoleRouting.targetName(resolvedRoles)}');
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => RoleRouting.pageFor(resolvedRoles),
+      ),
+      (_) => false,
+    );
   }
 
   String? _validateLogin({required String email, required String password}) {

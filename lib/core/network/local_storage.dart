@@ -18,16 +18,26 @@ class LocalStorage {
   LocalStorage._();
 
   static const _tokenKey = 'auth_token';
+  static const _rolesKey = 'auth_roles';
   static const _rememberMeKey = 'remember_me';
   static const _rememberedEmailKey = 'remembered_email';
   static const _rememberedPasswordKey = 'remembered_password';
 
   static String? _token;
 
-  static Future<void> saveToken(String token) async {
+  static Future<List<String>> saveToken(
+    String token, {
+    Iterable<String> roles = const [],
+  }) async {
     _token = token;
     final prefs = await SharedPreferences.getInstance();
+    final tokenRoles = _rolesFromToken(token);
+    final effectiveRoles = tokenRoles.isNotEmpty
+        ? tokenRoles
+        : roles.toList(growable: false);
     await prefs.setString(_tokenKey, token);
+    await prefs.setStringList(_rolesKey, effectiveRoles);
+    return List<String>.unmodifiable(effectiveRoles);
   }
 
   static Future<String?> getToken() async {
@@ -43,6 +53,22 @@ class LocalStorage {
     _token = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+    await prefs.remove(_rolesKey);
+  }
+
+  static Future<List<String>> getRoles() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = await getToken();
+    if (token != null && token.trim().isNotEmpty) {
+      final tokenRoles = _rolesFromToken(token);
+      if (tokenRoles.isNotEmpty) {
+        await prefs.setStringList(_rolesKey, tokenRoles);
+        return List<String>.unmodifiable(tokenRoles);
+      }
+    }
+
+    final savedRoles = prefs.getStringList(_rolesKey) ?? const <String>[];
+    return List<String>.unmodifiable(savedRoles);
   }
 
   static Future<bool> hasValidAuthToken({DateTime? now}) async {
@@ -121,6 +147,20 @@ class LocalStorage {
     } catch (_) {
       return null;
     }
+  }
+
+  static List<String> _rolesFromToken(String token) {
+    final payload = _decodeJwtPayload(token);
+    if (payload == null) return const [];
+
+    const roleClaim =
+        'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
+    final value = payload[roleClaim] ?? payload['role'] ?? payload['roles'];
+    if (value is Iterable) {
+      return value.map((role) => role.toString()).toList(growable: false);
+    }
+    if (value == null) return const [];
+    return <String>[value.toString()];
   }
 
   static DateTime? _readJwtExpiresAt(Map<String, dynamic> payload) {

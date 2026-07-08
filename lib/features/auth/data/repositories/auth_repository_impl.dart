@@ -27,8 +27,15 @@ class AuthRepositoryImpl implements AuthRepository {
       email: email,
       password: password,
     );
-    await LocalStorage.saveToken(session.token);
-    return session;
+    final roles = await LocalStorage.saveToken(
+      session.token,
+      roles: session.roles,
+    );
+    return AuthSession(
+      token: session.token,
+      expiresAt: session.expiresAt,
+      roles: roles,
+    );
   }
 
   @override
@@ -56,9 +63,16 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<AuthSession> googleLoginWithIdToken(String idToken) async {
     debugPrint('Sending Google token to backend');
     final session = await _remoteDataSource.googleLogin(idToken: idToken);
-    await LocalStorage.saveToken(session.token);
+    final roles = await LocalStorage.saveToken(
+      session.token,
+      roles: session.roles,
+    );
     debugPrint('Backend login success');
-    return session;
+    return AuthSession(
+      token: session.token,
+      expiresAt: session.expiresAt,
+      roles: roles,
+    );
   }
 
   @override

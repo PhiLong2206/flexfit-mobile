@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../domain/usecases/google_login_usecase.dart';
 import '../../domain/usecases/change_password_usecase.dart';
+import '../../domain/entities/auth_session.dart';
 
 class AuthProvider extends ChangeNotifier {
   AuthProvider({
@@ -23,14 +24,15 @@ class AuthProvider extends ChangeNotifier {
   bool get isChangingPassword => _isChangingPassword;
   String? get error => _error;
 
-  Future<void> googleLogin() async {
+  Future<AuthSession> googleLogin() async {
     if (_isGoogleLoading) {
-      return;
+      throw StateError('Google login is already in progress.');
     }
     _setGoogleLoading(true);
     try {
-      await _googleLoginUseCase();
+      final session = await _googleLoginUseCase();
       _error = null;
+      return session;
     } catch (error) {
       _error = error.toString();
       debugPrint('Google login failed: $error');

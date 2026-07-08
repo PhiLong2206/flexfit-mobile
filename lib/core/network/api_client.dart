@@ -61,7 +61,12 @@ class ApiClient {
         : body is String
         ? body
         : jsonEncode(body);
-    final containsPassword = path.toLowerCase().contains('password');
+    final normalizedPath = path.toLowerCase();
+    final isLoginRequest =
+        normalizedPath.endsWith('/auth/login') ||
+        normalizedPath.endsWith('/auth/google-login');
+    final containsPassword =
+        normalizedPath.contains('password') || isLoginRequest;
 
     debugPrint('REQUEST $method $uri');
     debugPrint(
@@ -83,7 +88,11 @@ class ApiClient {
     final decoded = _decode(responseText);
 
     debugPrint('RESPONSE ${response.statusCode} $method $uri');
-    debugPrint('RESPONSE BODY: $responseText');
+    debugPrint(
+      isLoginRequest
+          ? 'RESPONSE BODY: [AUTH RESPONSE REDACTED]'
+          : 'RESPONSE BODY: $responseText',
+    );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw ApiException(
