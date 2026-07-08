@@ -27,6 +27,19 @@ import '../../features/profile/domain/usecases/get_profile_usecase.dart';
 import '../../features/profile/domain/usecases/update_profile_usecase.dart';
 import '../../features/profile/presentation/providers/profile_provider.dart';
 
+import '../../features/partner/data/datasources/partner_remote_data_source.dart';
+import '../../features/partner/data/repositories/partner_repository_impl.dart';
+import '../../features/partner/domain/repositories/partner_repository.dart';
+import '../../features/partner/domain/usecases/create_class_usecase.dart';
+import '../../features/partner/domain/usecases/delete_class_usecase.dart';
+import '../../features/partner/domain/usecases/get_partner_branches_usecase.dart';
+import '../../features/partner/domain/usecases/get_partner_classes_usecase.dart';
+import '../../features/partner/domain/usecases/get_partner_dashboard_stats_usecase.dart';
+import '../../features/partner/domain/usecases/get_partner_gyms_usecase.dart';
+import '../../features/partner/domain/usecases/get_partner_customers_usecase.dart';
+import '../../features/partner/domain/usecases/get_partner_reviews_usecase.dart';
+import '../../features/partner/presentation/providers/partner_provider.dart';
+
 import '../network/api_client.dart';
 
 final sl = GetIt.instance;
@@ -85,6 +98,35 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<ProfileRemoteDataSource>(
     () => ProfileRemoteDataSourceImpl(apiClient: sl()),
+  );
+
+  // Features - Partner
+  sl.registerFactory(
+    () => PartnerProvider(
+      getPartnerDashboardStatsUseCase: sl(),
+      getPartnerBranchesUseCase: sl(),
+      getPartnerClassesUseCase: sl(),
+      createClassUseCase: sl(),
+      deleteClassUseCase: sl(),
+      getPartnerGymsUseCase: sl(),
+      getPartnerCustomersUseCase: sl(),
+      getPartnerReviewsUseCase: sl(),
+      partnerRepository: sl(),
+    ),
+  );
+  sl.registerLazySingleton(() => GetPartnerDashboardStatsUseCase(sl()));
+  sl.registerLazySingleton(() => GetPartnerBranchesUseCase(sl()));
+  sl.registerLazySingleton(() => GetPartnerClassesUseCase(sl()));
+  sl.registerLazySingleton(() => CreateClassUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteClassUseCase(sl()));
+  sl.registerLazySingleton(() => GetPartnerGymsUseCase(sl()));
+  sl.registerLazySingleton(() => GetPartnerCustomersUseCase(sl()));
+  sl.registerLazySingleton(() => GetPartnerReviewsUseCase(sl()));
+  sl.registerLazySingleton<PartnerRepository>(
+    () => PartnerRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton<PartnerRemoteDataSource>(
+    () => PartnerRemoteDataSourceImpl(apiClient: sl()),
   );
 
   // Features - Explore

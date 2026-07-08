@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../../../core/di/injection_container.dart';
 import '../../../admin/presentation/screens/admin_dashboard_page.dart';
 import '../../../home/presentation/screens/home_page.dart';
-import '../../../partner/presentation/screens/partner_dashboard_page.dart';
+import '../../../partner/presentation/providers/partner_provider.dart';
+import '../../../partner/presentation/screens/partner_shell_page.dart';
 import '../../../staff/presentation/screens/staff_dashboard_page.dart';
 import '../screens/unknown_role_page.dart';
 
@@ -25,7 +28,10 @@ class RoleRouting {
       case AppRole.admin:
         return const AdminDashboardPage();
       case AppRole.gymPartner:
-        return const PartnerDashboardPage();
+        return ChangeNotifierProvider(
+          create: (_) => sl<PartnerProvider>(),
+          child: const PartnerShellPage(),
+        );
       case AppRole.staff:
         return const StaffDashboardPage();
       case AppRole.member:

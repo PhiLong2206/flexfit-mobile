@@ -13,6 +13,7 @@ class BranchModel extends Branch {
     super.thumbnailUrl,
     required super.creditCost,
     required super.isActive,
+    super.staffs,
   });
 
   factory BranchModel.fromJson(Map<String, dynamic> json) {
@@ -30,6 +31,7 @@ class BranchModel extends Branch {
           int.tryParse(_read(json, 'creditCost')?.toString() ?? '') ?? 0,
       isActive:
           bool.tryParse(_read(json, 'isActive')?.toString() ?? '') ?? true,
+      staffs: json['staffs'] ?? json['Staffs'],
     );
   }
 }
