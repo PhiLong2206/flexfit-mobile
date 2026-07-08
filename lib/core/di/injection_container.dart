@@ -19,6 +19,14 @@ import '../../features/ai/domain/usecases/get_workout_suggestion_usecase.dart';
 import '../../features/ai/domain/usecases/get_class_suggestion_usecase.dart';
 import '../../features/booking/domain/usecases/get_my_bookings_usecase.dart';
 import '../../features/booking/data/repositories/booking_repository.dart';
+import '../../features/staff/data/datasources/staff_remote_data_source.dart';
+import '../../features/staff/data/repositories/staff_repository_impl.dart';
+import '../../features/staff/domain/repositories/staff_repository.dart';
+import '../../features/staff/presentation/providers/staff_dashboard_provider.dart';
+import '../../features/staff/presentation/providers/staff_check_in_provider.dart';
+import '../../features/staff/presentation/providers/staff_schedule_provider.dart';
+import '../../features/staff/presentation/providers/staff_customers_provider.dart';
+import '../../features/staff/presentation/providers/staff_reviews_provider.dart';
 
 import '../../features/profile/domain/repositories/profile_repository.dart';
 import '../../features/profile/data/repositories/profile_repository_impl.dart';
@@ -69,6 +77,29 @@ Future<void> init() async {
   // Features - Gym
 
   // Features - Home
+
+  // Features - Staff
+  sl.registerLazySingleton<StaffRemoteDataSource>(
+    () => StaffRemoteDataSourceImpl(apiClient: sl<ApiClient>()),
+  );
+  sl.registerLazySingleton<StaffRepository>(
+    () => StaffRepositoryImpl(remoteDataSource: sl<StaffRemoteDataSource>()),
+  );
+  sl.registerFactory<StaffDashboardProvider>(
+    () => StaffDashboardProvider(repository: sl<StaffRepository>()),
+  );
+  sl.registerFactory<StaffCheckInProvider>(
+    () => StaffCheckInProvider(repository: sl<StaffRepository>()),
+  );
+  sl.registerFactory<StaffScheduleProvider>(
+    () => StaffScheduleProvider(repository: sl<StaffRepository>()),
+  );
+  sl.registerFactory<StaffCustomersProvider>(
+    () => StaffCustomersProvider(repository: sl<StaffRepository>()),
+  );
+  sl.registerFactory<StaffReviewsProvider>(
+    () => StaffReviewsProvider(repository: sl<StaffRepository>()),
+  );
 
   // Features - Membership
 
