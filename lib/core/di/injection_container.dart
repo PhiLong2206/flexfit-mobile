@@ -17,6 +17,15 @@ import '../../features/ai/data/datasources/ai_remote_data_source.dart';
 import '../../features/ai/domain/usecases/chat_with_ai_usecase.dart';
 import '../../features/ai/domain/usecases/get_workout_suggestion_usecase.dart';
 import '../../features/ai/domain/usecases/get_class_suggestion_usecase.dart';
+import '../../features/admin/data/datasources/admin_remote_data_source.dart';
+import '../../features/admin/data/repositories/admin_repository_impl.dart';
+import '../../features/admin/domain/repositories/admin_repository.dart';
+import '../../features/admin/presentation/providers/admin_dashboard_provider.dart';
+import '../../features/admin/presentation/providers/admin_gyms_provider.dart';
+import '../../features/admin/presentation/providers/admin_revenue_provider.dart';
+import '../../features/admin/presentation/providers/admin_settings_provider.dart';
+import '../../features/admin/presentation/providers/admin_users_provider.dart';
+import '../../features/admin/presentation/providers/admin_utilities_provider.dart';
 import '../../features/booking/domain/usecases/get_my_bookings_usecase.dart';
 import '../../features/booking/data/repositories/booking_repository.dart';
 import '../../features/staff/data/datasources/staff_remote_data_source.dart';
@@ -67,6 +76,32 @@ Future<void> init() async {
     () => AiRepositoryImpl(remoteDataSource: sl()),
   );
   sl.registerLazySingleton(() => AiRemoteDataSource(apiClient: sl()));
+
+  // Features - Admin
+  sl.registerLazySingleton<AdminRemoteDataSource>(
+    () => AdminRemoteDataSourceImpl(apiClient: sl<ApiClient>()),
+  );
+  sl.registerLazySingleton<AdminRepository>(
+    () => AdminRepositoryImpl(remoteDataSource: sl<AdminRemoteDataSource>()),
+  );
+  sl.registerFactory<AdminDashboardProvider>(
+    () => AdminDashboardProvider(repository: sl<AdminRepository>()),
+  );
+  sl.registerFactory<AdminUsersProvider>(
+    () => AdminUsersProvider(repository: sl<AdminRepository>()),
+  );
+  sl.registerFactory<AdminGymsProvider>(
+    () => AdminGymsProvider(repository: sl<AdminRepository>()),
+  );
+  sl.registerFactory<AdminUtilitiesProvider>(
+    () => AdminUtilitiesProvider(repository: sl<AdminRepository>()),
+  );
+  sl.registerFactory<AdminRevenueProvider>(
+    () => AdminRevenueProvider(repository: sl<AdminRepository>()),
+  );
+  sl.registerFactory<AdminSettingsProvider>(
+    () => AdminSettingsProvider(repository: sl<AdminRepository>()),
+  );
 
   // Features - Booking
   sl.registerLazySingleton(() => BookingRepository(apiClient: sl()));
