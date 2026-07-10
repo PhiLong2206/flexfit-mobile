@@ -1,0 +1,37 @@
+import 'package:flutter/foundation.dart';
+
+import '../../domain/entities/staff_dashboard_summary.dart';
+import '../../domain/repositories/staff_repository.dart';
+
+class StaffDashboardProvider extends ChangeNotifier {
+  StaffDashboardProvider({required StaffRepository repository})
+    : _repository = repository;
+
+  final StaffRepository _repository;
+
+  StaffDashboardSummary? _summary;
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  StaffDashboardSummary? get summary => _summary;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+
+  Future<void> load({bool force = false}) async {
+    if (_isLoading && !force) return;
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _summary = await _repository.getDashboardSummary();
+    } catch (error) {
+      _errorMessage = error.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> refresh() => load(force: true);
+}
