@@ -23,6 +23,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _rememberMe = true;
   bool _hidePassword = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   @override
   void dispose() {
@@ -104,16 +105,15 @@ class _LoginPageState extends State<LoginPage> {
               AuthButton(
                 label: 'Đăng nhập',
                 isLoading: _isLoading,
-                onPressed: _login,
+                onPressed: _isLoading || _isGoogleLoading ? null : _login,
               ),
               const SizedBox(height: 24),
               const _DividerText(text: 'Hoặc tiếp tục với'),
               const SizedBox(height: 18),
               AuthSocialButton(
                 label: 'Tiếp tục với Google',
-                onPressed: () {
-                  debugPrint('Google login tapped');
-                },
+                isLoading: _isGoogleLoading,
+                onPressed: _isLoading || _isGoogleLoading ? null : _loginWithGoogle,
               ),
               const SizedBox(height: 28),
               _BottomPrompt(
@@ -135,7 +135,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
-    if (_isLoading) return;
+    if (_isLoading || _isGoogleLoading) return;
 
     final email = _emailController.text.trim();
     final password = _passwordController.text;
@@ -161,6 +161,29 @@ class _LoginPageState extends State<LoginPage> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _loginWithGoogle() async {
+    if (_isLoading || _isGoogleLoading) return;
+
+    setState(() => _isGoogleLoading = true);
+    try {
+      await _authRepository.loginWithGoogle();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          settings: const RouteSettings(name: HomePage.routeName),
+          builder: (_) => const HomePage(),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showSnackBar('Đăng nhập bằng Google thất bại');
+    } finally {
+      if (mounted) {
+        setState(() => _isGoogleLoading = false);
       }
     }
   }

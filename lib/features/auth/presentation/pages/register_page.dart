@@ -6,6 +6,7 @@ import '../widgets/auth_social_button.dart';
 import '../widgets/auth_text_field.dart';
 import '../widgets/auth_theme.dart';
 import '../../data/repositories/auth_repository_impl.dart';
+import '../../../home/presentation/pages/home_page.dart';
 import 'verify_otp_page.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -25,6 +26,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _hidePassword = true;
   bool _hideConfirmPassword = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   @override
   void dispose() {
@@ -125,16 +127,15 @@ class _RegisterPageState extends State<RegisterPage> {
               AuthButton(
                 label: 'Đăng ký',
                 isLoading: _isLoading,
-                onPressed: _register,
+                onPressed: _isLoading || _isGoogleLoading ? null : _register,
               ),
               const SizedBox(height: 24),
               const _DividerText(text: 'Hoặc đăng ký bằng'),
               const SizedBox(height: 18),
               AuthSocialButton(
                 label: 'Đăng ký với Google',
-                onPressed: () {
-                  debugPrint('Google register tapped');
-                },
+                isLoading: _isGoogleLoading,
+                onPressed: _isLoading || _isGoogleLoading ? null : _loginWithGoogle,
               ),
               const SizedBox(height: 28),
               Row(
@@ -163,7 +164,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _register() async {
-    if (_isLoading) return;
+    if (_isLoading || _isGoogleLoading) return;
 
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
@@ -200,6 +201,30 @@ class _RegisterPageState extends State<RegisterPage> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _loginWithGoogle() async {
+    if (_isLoading || _isGoogleLoading) return;
+
+    setState(() => _isGoogleLoading = true);
+    try {
+      await _authRepository.loginWithGoogle();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(
+          settings: const RouteSettings(name: HomePage.routeName),
+          builder: (_) => const HomePage(),
+        ),
+        (route) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showSnackBar('Đăng nhập bằng Google thất bại');
+    } finally {
+      if (mounted) {
+        setState(() => _isGoogleLoading = false);
       }
     }
   }

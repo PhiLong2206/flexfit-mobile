@@ -23,6 +23,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<AuthSession> loginWithGoogle() async {
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    final session = AuthSession(
+      token: 'mock_google_token_${DateTime.now().millisecondsSinceEpoch}',
+      expiresAt: DateTime.now().add(const Duration(days: 7)),
+    );
+    await LocalStorage.saveToken(session.token);
+    return session;
+  }
+
+  @override
   Future<void> register({
     required String fullName,
     required String email,

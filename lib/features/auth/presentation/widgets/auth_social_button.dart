@@ -7,10 +7,12 @@ class AuthSocialButton extends StatelessWidget {
     super.key,
     required this.label,
     required this.onPressed,
+    this.isLoading = false,
   });
 
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +20,7 @@ class AuthSocialButton extends StatelessWidget {
       width: double.infinity,
       height: 54,
       child: OutlinedButton(
-        onPressed: onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: AuthTheme.text,
           side: const BorderSide(color: AuthTheme.border),
@@ -31,24 +33,39 @@ class AuthSocialButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 24,
-              height: 24,
-              alignment: Alignment.center,
-              decoration: const BoxDecoration(
-                color: AuthTheme.text,
-                shape: BoxShape.circle,
-              ),
-              child: const Text(
-                'G',
-                style: TextStyle(
-                  color: AuthTheme.primary,
-                  fontWeight: FontWeight.w900,
-                ),
+            isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(AuthTheme.primary),
+                    ),
+                  )
+                : Container(
+                    width: 24,
+                    height: 24,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: AuthTheme.text,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Text(
+                      'G',
+                      style: TextStyle(
+                        color: AuthTheme.primary,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text(
+                isLoading ? 'Đang kết nối...' : label,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 12),
-            Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
           ],
         ),
       ),
