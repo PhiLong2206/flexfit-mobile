@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/di/injection_container.dart';
@@ -157,6 +159,37 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
     }
   }
 
+  Future<void> _pickAndUploadAvatar(BuildContext context) async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+    if (image == null) return;
+
+    final provider = context.read<ProfileProvider>();
+    try {
+      await provider.updateAvatar(File(image.path));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cập nhật ảnh đại diện thành công.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi tải ảnh đại diện: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
   String _initials(Profile profile) {
     final name = profile.fullName.trim();
     if (name.isEmpty) return 'FF';
@@ -228,6 +261,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                                         name: profile.fullName,
                                         email: profile.email,
                                         avatarUrl: profile.avatarUrl,
+                                        onAvatarTap: () => _pickAndUploadAvatar(context),
                                       ),
                                       const SizedBox(height: 16),
                                       _MenuCard(
@@ -266,6 +300,7 @@ class _ProfilePageViewState extends State<_ProfilePageView> {
                                   name: profile.fullName,
                                   email: profile.email,
                                   avatarUrl: profile.avatarUrl,
+                                  onAvatarTap: () => _pickAndUploadAvatar(context),
                                 ),
                                 const SizedBox(height: 16),
                                 _MenuCard(
@@ -311,12 +346,14 @@ class _ProfileCard extends StatelessWidget {
     required this.name,
     required this.email,
     required this.avatarUrl,
+    required this.onAvatarTap,
   });
 
   final String initials;
   final String name;
   final String email;
   final String? avatarUrl;
+  final VoidCallback onAvatarTap;
 
   @override
   Widget build(BuildContext context) {
@@ -336,7 +373,11 @@ class _ProfileCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _AvatarBadge(initials: initials, avatarUrl: avatarUrl),
+          _AvatarBadge(
+            initials: initials,
+            avatarUrl: avatarUrl,
+            onTap: onAvatarTap,
+          ),
           const SizedBox(height: 18),
           Text(
             name.isEmpty ? 'FlexFit Member' : name,
@@ -387,34 +428,66 @@ class _ProfileCard extends StatelessWidget {
 }
 
 class _AvatarBadge extends StatelessWidget {
-  const _AvatarBadge({required this.initials, required this.avatarUrl});
+  const _AvatarBadge({
+    required this.initials,
+    required this.avatarUrl,
+    required this.onTap,
+  });
 
   final String initials;
   final String? avatarUrl;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final url = avatarUrl?.trim();
-    return Container(
-      width: 100,
-      height: 100,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: _ProfilePageViewState._primaryOrange.withValues(alpha: 0.9),
-          width: 3,
-        ),
-        color: Colors.black,
-      ),
-      child: ClipOval(
-        child: url == null || url.isEmpty
-            ? _InitialsAvatar(initials: initials)
-            : Image.network(
-                url,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => _InitialsAvatar(initials: initials),
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 100,
+            height: 100,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: _ProfilePageViewState._primaryOrange.withValues(alpha: 0.9),
+                width: 3,
               ),
+              color: Colors.black,
+            ),
+            child: ClipOval(
+              child: url == null || url.isEmpty
+                  ? _InitialsAvatar(initials: initials)
+                  : Image.network(
+                      url,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        debugPrint('ERROR LOADING AVATAR FROM URL: $url - Error: $error');
+                        return _InitialsAvatar(initials: initials);
+                      },
+                    ),
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: _ProfilePageViewState._primaryOrange,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.camera_alt_rounded,
+                color: Colors.white,
+                size: 14,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

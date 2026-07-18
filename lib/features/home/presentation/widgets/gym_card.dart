@@ -55,7 +55,19 @@ class GymCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.network(imageUrl, fit: BoxFit.cover),
+                    Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: const Color(0xFF1E293B),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.image_not_supported_rounded,
+                          color: Colors.white24,
+                          size: 36,
+                        ),
+                      ),
+                    ),
                     const DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
