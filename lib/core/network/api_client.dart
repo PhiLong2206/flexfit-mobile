@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
@@ -135,5 +136,57 @@ class ApiClient {
       return raw;
     }
     return 'Yêu cầu thất bại. Vui lòng thử lại.';
+  }
+
+  Future<dynamic> multipartRequest(
+    String method,
+    String path, {
+    required Map<String, String> fields,
+    required List<Map<String, dynamic>> files,
+  }) async {
+    final uri = Uri.parse('$_baseUrl${path.startsWith('/') ? path : '/$path'}');
+    final request = await HttpClient().openUrl(method, uri);
+
+    final token = await LocalStorage.getToken();
+    if (token != null && token.isNotEmpty) {
+      request.headers.set('Authorization', 'Bearer $token');
+    }
+
+    final boundary = 'dart-http-boundary-${DateTime.now().millisecondsSinceEpoch}';
+    request.headers.set('Content-Type', 'multipart/form-data; boundary=$boundary');
+
+    final body = <int>[];
+    for (final entry in fields.entries) {
+      body.addAll(utf8.encode('--$boundary\r\n'));
+      body.addAll(utf8.encode('Content-Disposition: form-data; name="${entry.key}"\r\n\r\n'));
+      body.addAll(utf8.encode('${entry.value}\r\n'));
+    }
+
+    for (final file in files) {
+      final String name = file['name'];
+      final File fileObj = file['file'];
+      final filename = fileObj.path.split(Platform.pathSeparator).last;
+      body.addAll(utf8.encode('--$boundary\r\n'));
+      body.addAll(utf8.encode('Content-Disposition: form-data; name="$name"; filename="$filename"\r\n'));
+      body.addAll(utf8.encode('Content-Type: application/octet-stream\r\n\r\n'));
+      body.addAll(await fileObj.readAsBytes());
+      body.addAll(utf8.encode('\r\n'));
+    }
+    body.addAll(utf8.encode('--$boundary--\r\n'));
+
+    request.contentLength = body.length;
+    request.add(body);
+
+    final response = await request.close();
+    final responseText = await response.transform(utf8.decoder).join();
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw ApiException(
+        'Upload failed',
+        statusCode: response.statusCode,
+        body: responseText,
+      );
+    }
+    return _decode(responseText);
   }
 }

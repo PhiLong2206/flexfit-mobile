@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../../../catalog/domain/entities/branch.dart';
 import '../../../catalog/domain/entities/fitness_class.dart';
 import '../../../catalog/domain/entities/gym.dart';
@@ -28,6 +30,13 @@ abstract class PartnerRepository {
   Future<void> createBranch(Map<String, dynamic> body);
   Future<void> updateBranch(String branchId, Map<String, dynamic> body);
   Future<void> deleteBranch(String branchId);
+
+  // Multipart uploads
+  Future<void> createBranchWithImage(Map<String, String> fields, File imageFile);
+  Future<void> updateBranchWithImage(String branchId, Map<String, String> fields, File imageFile);
+  Future<void> updateGymWithImage(String gymId, Map<String, String> fields, File imageFile);
+  Future<void> createClassWithImage(Map<String, String> fields, File imageFile);
+  Future<void> updateClassWithImage(String classId, Map<String, String> fields, File imageFile);
 
   // Promotions
   Future<List<PartnerPromotionModel>> getPromotions();

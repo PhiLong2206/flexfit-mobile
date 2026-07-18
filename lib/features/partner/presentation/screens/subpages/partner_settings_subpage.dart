@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import '../../../../../core/constants/app_constants.dart';
+import '../../../../../core/widgets/image_picker_field.dart';
 import '../../../../catalog/domain/entities/gym.dart';
 import '../../providers/partner_provider.dart';
 
@@ -18,7 +21,10 @@ class _PartnerSettingsSubpageState extends State<PartnerSettingsSubpage> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _descController = TextEditingController();
-  final _thumbController = TextEditingController();
+
+  // Image state for edit gym dialog
+  String? _currentThumbnailUrl;
+  File? _pickedImageFile;
 
   @override
   void dispose() {
@@ -26,7 +32,6 @@ class _PartnerSettingsSubpageState extends State<PartnerSettingsSubpage> {
     _phoneController.dispose();
     _emailController.dispose();
     _descController.dispose();
-    _thumbController.dispose();
     super.dispose();
   }
 
@@ -35,7 +40,8 @@ class _PartnerSettingsSubpageState extends State<PartnerSettingsSubpage> {
     _phoneController.text = gym.phoneNumber ?? '';
     _emailController.text = gym.email ?? '';
     _descController.text = gym.description ?? '';
-    _thumbController.text = gym.thumbnailUrl ?? '';
+    _currentThumbnailUrl = gym.thumbnailUrl;
+    _pickedImageFile = null;
 
     showDialog(
       context: context,
@@ -61,6 +67,18 @@ class _PartnerSettingsSubpageState extends State<PartnerSettingsSubpage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _buildLabel('Hình ảnh phòng gym'),
+                        ImagePickerField(
+                          currentUrl: _currentThumbnailUrl,
+                          pickedFile: _pickedImageFile,
+                          onFilePicked: (f) => setDialogState(() => _pickedImageFile = f),
+                          onClear: () => setDialogState(() {
+                            _pickedImageFile = null;
+                            _currentThumbnailUrl = null;
+                          }),
+                        ),
+                        const SizedBox(height: 12),
+
                         _buildLabel('Tên phòng gym *'),
                         TextFormField(
                           controller: _nameController,
@@ -96,14 +114,6 @@ class _PartnerSettingsSubpageState extends State<PartnerSettingsSubpage> {
                         ),
                         const SizedBox(height: 12),
 
-                        _buildLabel('Link hình ảnh nền (Thumbnail URL)'),
-                        TextFormField(
-                          controller: _thumbController,
-                          style: const TextStyle(color: Colors.white, fontSize: 13),
-                          decoration: _buildInput('URL hình ảnh...'),
-                        ),
-                        const SizedBox(height: 12),
-
                         _buildLabel('Mô tả phòng gym'),
                         TextFormField(
                           controller: _descController,
@@ -130,16 +140,29 @@ class _PartnerSettingsSubpageState extends State<PartnerSettingsSubpage> {
                     if (!_formKey.currentState!.validate()) return;
                     Navigator.of(ctx).pop();
 
-                    final body = {
-                      'gymName': _nameController.text.trim(),
-                      'description': _descController.text.trim(),
-                      'thumbnailUrl': _thumbController.text.trim(),
-                      'phoneNumber': _phoneController.text.trim(),
-                      'email': _emailController.text.trim(),
-                    };
-
                     try {
-                      await widget.provider.updateGym(gym.id, body);
+                      if (_pickedImageFile != null) {
+                        // Multipart khi có ảnh mới
+                        final fields = <String, String>{
+                          'gymName': _nameController.text.trim(),
+                          'description': _descController.text.trim(),
+                          'phoneNumber': _phoneController.text.trim(),
+                          'email': _emailController.text.trim(),
+                        };
+                        await widget.provider.partnerRepository
+                            .updateGymWithImage(gym.id, fields, _pickedImageFile!);
+                        await widget.provider.fetchGyms();
+                      } else {
+                        // JSON thường
+                        final body = {
+                          'gymName': _nameController.text.trim(),
+                          'description': _descController.text.trim(),
+                          'phoneNumber': _phoneController.text.trim(),
+                          'email': _emailController.text.trim(),
+                          if (_currentThumbnailUrl != null) 'thumbnailUrl': _currentThumbnailUrl,
+                        };
+                        await widget.provider.updateGym(gym.id, body);
+                      }
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(

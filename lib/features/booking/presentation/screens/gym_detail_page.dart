@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../catalog/data/repositories/catalog_repository.dart';
 import '../../../catalog/domain/entities/branch.dart';
 import '../../../catalog/domain/entities/gym.dart';
+import '../../../partner/data/models/partner_review_model.dart';
+import '../../data/repositories/review_repository.dart';
 import '../widgets/booking_bottom_bar.dart';
 import '../widgets/booking_theme.dart';
 import '../widgets/gym_image_slider.dart';
@@ -27,6 +29,7 @@ class _GymDetailPageState extends State<GymDetailPage> {
   ];
 
   final _repository = CatalogRepository();
+  final _reviewRepository = ReviewRepository();
   Future<_GymDetailData>? _future;
 
   @override
@@ -41,7 +44,8 @@ class _GymDetailPageState extends State<GymDetailPage> {
   Future<_GymDetailData> _load(String gymId) async {
     final gym = await _repository.getGymById(gymId);
     final branches = await _repository.getBranches();
-    return _GymDetailData(gym: gym, branches: branches);
+    final reviews = await _reviewRepository.getReviewsForGym(gymId);
+    return _GymDetailData(gym: gym, branches: branches, reviews: reviews);
   }
 
   void _reload() {
@@ -111,6 +115,7 @@ class _GymDetailPageState extends State<GymDetailPage> {
         final data = snapshot.data!;
         final gym = data.gym;
         final branch = data.primaryBranch;
+        final reviews = data.reviews;
         final images = [
           if (branch?.thumbnailUrl != null) branch!.thumbnailUrl!,
           if (gym.thumbnailUrl != null) gym.thumbnailUrl!,
@@ -133,7 +138,7 @@ class _GymDetailPageState extends State<GymDetailPage> {
                   slivers: [
                     SliverToBoxAdapter(child: GymImageSlider(images: images)),
                     SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                       sliver: SliverToBoxAdapter(
                         child: GymInfoCard(
                           name: gym.name,
@@ -156,6 +161,12 @@ class _GymDetailPageState extends State<GymDetailPage> {
                         ),
                       ),
                     ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                      sliver: SliverToBoxAdapter(
+                        child: _ReviewsSection(reviews: reviews),
+                      ),
+                    ),
                   ],
                 ),
                 Positioned(
@@ -175,10 +186,11 @@ class _GymDetailPageState extends State<GymDetailPage> {
 }
 
 class _GymDetailData {
-  const _GymDetailData({required this.gym, required this.branches});
+  const _GymDetailData({required this.gym, required this.branches, required this.reviews});
 
   final Gym gym;
   final List<Branch> branches;
+  final List<PartnerReviewModel> reviews;
 
   Branch? get primaryBranch {
     return CatalogRepository().resolveBranchForGym(gym, branches);
@@ -194,8 +206,126 @@ class _GymDetailScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: BookingTheme.background,
-      appBar: AppBar(backgroundColor: BookingTheme.background),
+      appBar: AppBar(backgroundColor: BookingTheme.background, elevation: 0),
       body: child,
+    );
+  }
+}
+
+class _ReviewsSection extends StatelessWidget {
+  const _ReviewsSection({required this.reviews});
+
+  final List<PartnerReviewModel> reviews;
+
+  @override
+  Widget build(BuildContext context) {
+    if (reviews.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: BookingTheme.card,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: BookingTheme.border),
+        ),
+        child: const Center(
+          child: Text(
+            'Chưa có đánh giá nào cho phòng tập này.',
+            style: TextStyle(color: BookingTheme.secondaryText, fontSize: 14),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: BookingTheme.card,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: BookingTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Đánh giá từ hội viên',
+                style: TextStyle(
+                  color: BookingTheme.text,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(
+                '${reviews.length} đánh giá',
+                style: const TextStyle(
+                  color: BookingTheme.primary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: reviews.length,
+            separatorBuilder: (_, __) => Divider(color: BookingTheme.border, height: 24),
+            itemBuilder: (context, index) {
+              final review = reviews[index];
+              final dateStr = '${review.createdAt.day}/${review.createdAt.month}/${review.createdAt.year}';
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        review.customerName,
+                        style: const TextStyle(
+                          color: BookingTheme.text,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        dateStr,
+                        style: const TextStyle(
+                          color: BookingTheme.secondaryText,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: List.generate(5, (starIdx) {
+                      return Icon(
+                        Icons.star_rounded,
+                        size: 16,
+                        color: starIdx < review.rating ? const Color(0xFFFFC857) : Colors.white24,
+                      );
+                    }),
+                  ),
+                  if (review.comment.trim().isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      review.comment,
+                      style: const TextStyle(
+                        color: BookingTheme.secondaryText,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

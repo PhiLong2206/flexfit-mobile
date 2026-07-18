@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../../core/constants/app_constants.dart';
+import '../../../../../core/widgets/image_picker_field.dart';
 import '../../../../catalog/domain/entities/fitness_class.dart';
 import '../../providers/partner_provider.dart';
 
@@ -407,7 +410,6 @@ class _CreateClassBottomSheetState extends State<_CreateClassBottomSheet> {
   final _capacityController = TextEditingController(text: '20');
   final _creditCostController = TextEditingController(text: '4');
   final _caloriesController = TextEditingController(text: '500');
-  final _thumbnailUrlController = TextEditingController();
 
   String? _selectedBranchId;
   String _selectedCategoryId = _categories.first['id']!;
@@ -417,6 +419,10 @@ class _CreateClassBottomSheetState extends State<_CreateClassBottomSheet> {
   TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
   DateTime _endDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _endTime = const TimeOfDay(hour: 10, minute: 0);
+
+  // Image state
+  String? _currentThumbnailUrl;
+  File? _pickedImageFile;
 
   bool _isSubmitting = false;
 
@@ -431,7 +437,7 @@ class _CreateClassBottomSheetState extends State<_CreateClassBottomSheet> {
       _capacityController.text = editClass.capacity.toString();
       _creditCostController.text = editClass.creditCost.toString();
       _caloriesController.text = (editClass.caloriesBurnEstimate ?? 500).toString();
-      _thumbnailUrlController.text = editClass.thumbnailUrl ?? '';
+      _currentThumbnailUrl = editClass.thumbnailUrl;
       _selectedBranchId = editClass.branchId;
       _selectedCategoryId = editClass.categoryId;
       _selectedDifficulty = editClass.difficultyLevel ?? 'Trung bình';
@@ -454,7 +460,6 @@ class _CreateClassBottomSheetState extends State<_CreateClassBottomSheet> {
     _capacityController.dispose();
     _creditCostController.dispose();
     _caloriesController.dispose();
-    _thumbnailUrlController.dispose();
     super.dispose();
   }
 
@@ -590,32 +595,39 @@ class _CreateClassBottomSheetState extends State<_CreateClassBottomSheet> {
       'creditCost': int.tryParse(_creditCostController.text) ?? 4,
       'difficultyLevel': _selectedDifficulty,
       'caloriesBurnEstimate': int.tryParse(_caloriesController.text) ?? 500,
-      'thumbnailUrl': _thumbnailUrlController.text.trim().isEmpty
-          ? null
-          : _thumbnailUrlController.text.trim(),
+      if (_currentThumbnailUrl != null && _currentThumbnailUrl!.isNotEmpty)
+        'thumbnailUrl': _currentThumbnailUrl,
     };
 
     try {
       if (widget.fitnessClass != null) {
         body['status'] = widget.fitnessClass!.status;
-        await widget.partnerProvider.updateClass(widget.fitnessClass!.id, body);
+        if (_pickedImageFile != null) {
+          final fields = body.map((k, v) => MapEntry(k, v?.toString() ?? ''));
+          await widget.partnerProvider.partnerRepository
+              .updateClassWithImage(widget.fitnessClass!.id, fields, _pickedImageFile!);
+          await widget.partnerProvider.fetchClasses();
+        } else {
+          await widget.partnerProvider.updateClass(widget.fitnessClass!.id, body);
+        }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Cập nhật lớp học thành công!'),
-              backgroundColor: Colors.green,
-            ),
+            const SnackBar(content: Text('Cập nhật lớp học thành công!'), backgroundColor: Colors.green),
           );
           Navigator.of(context).pop();
         }
       } else {
-        await widget.partnerProvider.createClass(body);
+        if (_pickedImageFile != null) {
+          final fields = body.map((k, v) => MapEntry(k, v?.toString() ?? ''));
+          await widget.partnerProvider.partnerRepository
+              .createClassWithImage(fields, _pickedImageFile!);
+          await widget.partnerProvider.fetchClasses();
+        } else {
+          await widget.partnerProvider.createClass(body);
+        }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Tạo lớp học mới thành công!'),
-              backgroundColor: Colors.green,
-            ),
+            const SnackBar(content: Text('Tạo lớp học mới thành công!'), backgroundColor: Colors.green),
           );
           Navigator.of(context).pop();
         }
@@ -984,11 +996,15 @@ class _CreateClassBottomSheetState extends State<_CreateClassBottomSheet> {
                     ),
                     const SizedBox(height: 16),
 
-                    _buildLabel('Link hình ảnh nền (Thumbnail URL)'),
-                    TextFormField(
-                      controller: _thumbnailUrlController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _buildInputDecoration('https://example.com/image.jpg'),
+                    _buildLabel('Hình ảnh lớp học'),
+                    ImagePickerField(
+                      currentUrl: _currentThumbnailUrl,
+                      pickedFile: _pickedImageFile,
+                      onFilePicked: (f) => setState(() => _pickedImageFile = f),
+                      onClear: () => setState(() {
+                        _pickedImageFile = null;
+                        _currentThumbnailUrl = null;
+                      }),
                     ),
                     const SizedBox(height: 16),
 
