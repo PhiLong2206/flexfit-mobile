@@ -206,6 +206,26 @@ class _MembershipPageState extends State<MembershipPage> {
                         ),
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: orange.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: orange.withValues(alpha: 0.3)),
+                      ),
+                      child: Text(
+                        '${pkg.creditAmount} Credits',
+                        style: const TextStyle(
+                          color: orange,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                     if (pkg.isPopular) ...[
                       const SizedBox(width: 8),
                       Container(
