@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../booking/presentation/screens/gym_detail_page.dart';
 import '../../../catalog/data/repositories/catalog_repository.dart';
+import '../../../catalog/domain/entities/branch.dart';
 import '../../../catalog/domain/entities/gym.dart';
 import '../../../gym/presentation/screens/explore_page.dart';
 import 'gym_card.dart';
@@ -18,17 +19,28 @@ class _FeaturedGymSectionState extends State<FeaturedGymSection> {
       'https://images.unsplash.com/photo-1534438327276-14e5300c3a48';
 
   final _repository = CatalogRepository();
-  late Future<List<Gym>> _future;
+  late Future<_FeaturedData> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = _repository.getGyms();
+    _future = _loadData();
+  }
+
+  Future<_FeaturedData> _loadData() async {
+    final results = await Future.wait([
+      _repository.getGyms(),
+      _repository.getBranches(),
+    ]);
+    return _FeaturedData(
+      gyms: results[0] as List<Gym>,
+      branches: results[1] as List<Branch>,
+    );
   }
 
   void _reload() {
     setState(() {
-      _future = _repository.getGyms();
+      _future = _loadData();
     });
   }
 
@@ -72,7 +84,7 @@ class _FeaturedGymSectionState extends State<FeaturedGymSection> {
         const SizedBox(height: 12),
         SizedBox(
           height: 260,
-          child: FutureBuilder<List<Gym>>(
+          child: FutureBuilder<_FeaturedData>(
             future: _future,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -85,7 +97,9 @@ class _FeaturedGymSectionState extends State<FeaturedGymSection> {
                   onPressed: _reload,
                 );
               }
-              final gyms = (snapshot.data ?? const <Gym>[]).take(6).toList();
+              final data = snapshot.data;
+              final gyms = (data?.gyms ?? const <Gym>[]).take(6).toList();
+              final branches = data?.branches ?? const <Branch>[];
               if (gyms.isEmpty) {
                 return _InlineState(
                   title: 'Chưa có phòng tập nổi bật',
@@ -102,12 +116,15 @@ class _FeaturedGymSectionState extends State<FeaturedGymSection> {
                 separatorBuilder: (_, _) => const SizedBox(width: 14),
                 itemBuilder: (context, index) {
                   final gym = gyms[index];
+                  final resolvedBranch = _repository.resolveBranchForGym(gym, branches);
+                  final creditCost = resolvedBranch?.creditCost ?? 0;
+
                   return GymCard(
                     imageUrl: gym.thumbnailUrl ?? _fallbackImage,
                     name: gym.name,
                     location: gym.description ?? gym.status,
                     rating: gym.ratingAverage,
-                    credits: 0,
+                    credits: creditCost,
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute<void>(
@@ -124,6 +141,12 @@ class _FeaturedGymSectionState extends State<FeaturedGymSection> {
       ],
     );
   }
+}
+
+class _FeaturedData {
+  const _FeaturedData({required this.gyms, required this.branches});
+  final List<Gym> gyms;
+  final List<Branch> branches;
 }
 
 class _InlineState extends StatelessWidget {

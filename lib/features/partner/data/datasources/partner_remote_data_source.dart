@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../../../../core/network/api_client.dart';
 import '../../../catalog/data/models/branch_model.dart';
 import '../../../catalog/data/models/fitness_class_model.dart';
@@ -29,6 +31,13 @@ abstract class PartnerRemoteDataSource {
   Future<void> createBranch(Map<String, dynamic> body);
   Future<void> updateBranch(String branchId, Map<String, dynamic> body);
   Future<void> deleteBranch(String branchId);
+
+  // Multipart uploads (khi có file ảnh mới)
+  Future<void> createBranchWithImage(Map<String, String> fields, File imageFile);
+  Future<void> updateBranchWithImage(String branchId, Map<String, String> fields, File imageFile);
+  Future<void> updateGymWithImage(String gymId, Map<String, String> fields, File imageFile);
+  Future<void> createClassWithImage(Map<String, String> fields, File imageFile);
+  Future<void> updateClassWithImage(String classId, Map<String, String> fields, File imageFile);
 
   // Promotions
   Future<List<PartnerPromotionModel>> getPromotions();
@@ -180,6 +189,37 @@ class PartnerRemoteDataSourceImpl implements PartnerRemoteDataSource {
   @override
   Future<void> deleteBranch(String branchId) async {
     await _apiClient.delete('/branches/$branchId');
+  }
+
+  // Multipart uploads
+  @override
+  Future<void> createBranchWithImage(Map<String, String> fields, File imageFile) async {
+    await _apiClient.multipartRequest('POST', '/branches',
+        fields: fields, files: [{'name': 'image', 'file': imageFile}]);
+  }
+
+  @override
+  Future<void> updateBranchWithImage(String branchId, Map<String, String> fields, File imageFile) async {
+    await _apiClient.multipartRequest('PUT', '/branches/$branchId',
+        fields: fields, files: [{'name': 'image', 'file': imageFile}]);
+  }
+
+  @override
+  Future<void> updateGymWithImage(String gymId, Map<String, String> fields, File imageFile) async {
+    await _apiClient.multipartRequest('PUT', '/gyms/$gymId',
+        fields: fields, files: [{'name': 'image', 'file': imageFile}]);
+  }
+
+  @override
+  Future<void> createClassWithImage(Map<String, String> fields, File imageFile) async {
+    await _apiClient.multipartRequest('POST', '/classes',
+        fields: fields, files: [{'name': 'image', 'file': imageFile}]);
+  }
+
+  @override
+  Future<void> updateClassWithImage(String classId, Map<String, String> fields, File imageFile) async {
+    await _apiClient.multipartRequest('PUT', '/classes/$classId',
+        fields: fields, files: [{'name': 'image', 'file': imageFile}]);
   }
 
   // Promotions

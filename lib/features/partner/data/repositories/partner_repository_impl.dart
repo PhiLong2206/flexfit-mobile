@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../../../catalog/domain/entities/branch.dart';
 import '../../../catalog/domain/entities/fitness_class.dart';
 import '../../../catalog/domain/entities/gym.dart';
@@ -94,6 +96,32 @@ class PartnerRepositoryImpl implements PartnerRepository {
   @override
   Future<void> deleteBranch(String branchId) {
     return remoteDataSource.deleteBranch(branchId);
+  }
+
+  // Multipart uploads
+  @override
+  Future<void> createBranchWithImage(Map<String, String> fields, File imageFile) {
+    return remoteDataSource.createBranchWithImage(fields, imageFile);
+  }
+
+  @override
+  Future<void> updateBranchWithImage(String branchId, Map<String, String> fields, File imageFile) {
+    return remoteDataSource.updateBranchWithImage(branchId, fields, imageFile);
+  }
+
+  @override
+  Future<void> updateGymWithImage(String gymId, Map<String, String> fields, File imageFile) {
+    return remoteDataSource.updateGymWithImage(gymId, fields, imageFile);
+  }
+
+  @override
+  Future<void> createClassWithImage(Map<String, String> fields, File imageFile) {
+    return remoteDataSource.createClassWithImage(fields, imageFile);
+  }
+
+  @override
+  Future<void> updateClassWithImage(String classId, Map<String, String> fields, File imageFile) {
+    return remoteDataSource.updateClassWithImage(classId, fields, imageFile);
   }
 
   // Promotions

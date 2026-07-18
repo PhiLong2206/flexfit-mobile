@@ -21,6 +21,66 @@ class _GymImageSliderState extends State<GymImageSlider> {
     super.dispose();
   }
 
+  void _openFullScreenImage(int initialIndex) {
+    showDialog<void>(
+      context: context,
+      useSafeArea: false,
+      builder: (context) {
+        final dialogPageController = PageController(initialPage: initialIndex);
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return Scaffold(
+              backgroundColor: Colors.black,
+              body: Stack(
+                children: [
+                  PageView.builder(
+                    controller: dialogPageController,
+                    itemCount: widget.images.length,
+                    itemBuilder: (context, index) {
+                      return Center(
+                        child: InteractiveViewer(
+                          maxScale: 4.0,
+                          minScale: 0.8,
+                          child: Image.network(
+                            widget.images[index],
+                            fit: BoxFit.contain,
+                            loadingBuilder: (_, child, progress) {
+                              if (progress == null) return child;
+                              return const Center(
+                                child: CircularProgressIndicator(color: BookingTheme.primary),
+                              );
+                            },
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.broken_image,
+                              color: Colors.white24,
+                              size: 64,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  Positioned(
+                    top: MediaQuery.paddingOf(context).top + 16,
+                    right: 16,
+                    child: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.black45,
+                        shape: const CircleBorder(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -33,16 +93,19 @@ class _GymImageSliderState extends State<GymImageSlider> {
             itemCount: widget.images.length,
             onPageChanged: (index) => setState(() => _currentPage = index),
             itemBuilder: (context, index) {
-              return Image.network(
-                widget.images[index],
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: BookingTheme.card,
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.fitness_center,
-                    color: BookingTheme.primary,
-                    size: 48,
+              return GestureDetector(
+                onTap: () => _openFullScreenImage(index),
+                child: Image.network(
+                  widget.images[index],
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: BookingTheme.card,
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.fitness_center,
+                      color: BookingTheme.primary,
+                      size: 48,
+                    ),
                   ),
                 ),
               );
