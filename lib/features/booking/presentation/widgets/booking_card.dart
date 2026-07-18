@@ -60,6 +60,9 @@ class BookingCard extends StatelessWidget {
   }
 
   String get _imageUrl {
+    if (booking.thumbnailUrl != null && booking.thumbnailUrl!.isNotEmpty) {
+      return booking.thumbnailUrl!;
+    }
     // Choose image based on type or title
     if (booking.type == BookingType.classBooking) {
       return 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438'; // Class studio image

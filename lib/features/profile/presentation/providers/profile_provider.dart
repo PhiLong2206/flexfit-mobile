@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/profile.dart';
@@ -78,6 +80,24 @@ class ProfileProvider extends ChangeNotifier {
       );
 
       _profile = await _updateProfileUseCase(updatedProfile);
+    } catch (e) {
+      _error = e.toString();
+      rethrow;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateAvatar(File imageFile) async {
+    if (_profile == null) return;
+
+    _isSaving = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _profile = await _getProfileUseCase.repository.uploadAvatar(imageFile);
     } catch (e) {
       _error = e.toString();
       rethrow;

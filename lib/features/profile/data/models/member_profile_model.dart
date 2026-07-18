@@ -36,7 +36,11 @@ class MemberProfileModel {
       phoneNumber: _read(json, 'phoneNumber')?.toString(),
       dateOfBirth: _read(json, 'dateOfBirth')?.toString(),
       gender: _read(json, 'gender')?.toString(),
-      avatarUrl: _read(json, 'avatarUrl')?.toString(),
+      avatarUrl: (_read(json, 'avatarUrl') ??
+              _read(json, 'avatar') ??
+              _read(json, 'avatarPath') ??
+              _read(json, 'profilePicture'))
+          ?.toString(),
       heightCm: double.tryParse(_read(json, 'heightCm')?.toString() ?? ''),
       weightKg: double.tryParse(_read(json, 'weightKg')?.toString() ?? ''),
       fitnessGoal: _read(json, 'fitnessGoal')?.toString(),

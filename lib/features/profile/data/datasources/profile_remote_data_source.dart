@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/network/local_storage.dart';
 import '../models/member_profile_model.dart';
 
 abstract class ProfileRemoteDataSource {
   Future<MemberProfileModel> getProfile();
   Future<MemberProfileModel> updateProfile(MemberProfileModel profile);
+  Future<MemberProfileModel> uploadAvatar(File imageFile);
 }
 
 class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
@@ -16,9 +19,28 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   @override
   Future<MemberProfileModel> getProfile() async {
     final response = await _apiClient.get('/profiles/me');
-    return MemberProfileModel.fromJson(
-      Map<String, dynamic>.from(response as Map),
-    );
+    final extracted = _extractProfileData(response) ?? Map<String, dynamic>.from(response as Map);
+    
+    // Gọi thêm API /users/{id} để lấy avatarUrl
+    try {
+      final userId = await LocalStorage.getUserIdFromToken();
+      if (userId != null && userId.isNotEmpty) {
+        final userResponse = await _apiClient.get('/users/$userId');
+        if (userResponse is Map) {
+          final userData = userResponse['data'] ?? userResponse['Data'] ?? userResponse;
+          if (userData is Map) {
+            final avatarUrl = userData['avatarUrl'] ?? userData['AvatarUrl'] ?? userData['avatar'] ?? userData['Avatar'];
+            if (avatarUrl != null) {
+              extracted['avatarUrl'] = avatarUrl.toString();
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching avatarUrl from /users/{id}: $e');
+    }
+
+    return MemberProfileModel.fromJson(extracted);
   }
 
   @override
@@ -38,6 +60,23 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     debugPrint(
       'UPDATE PROFILE RESPONSE HAS NO PROFILE DATA; RELOADING /profiles/me',
     );
+    return getProfile();
+  }
+
+  @override
+  Future<MemberProfileModel> uploadAvatar(File imageFile) async {
+    final response = await _apiClient.multipartRequest(
+      'PUT',
+      '/profiles/me',
+      fields: {},
+      files: [
+        {'name': 'avatar', 'file': imageFile},
+      ],
+    );
+    final profileData = _extractProfileData(response);
+    if (profileData != null) {
+      return MemberProfileModel.fromJson(profileData);
+    }
     return getProfile();
   }
 
