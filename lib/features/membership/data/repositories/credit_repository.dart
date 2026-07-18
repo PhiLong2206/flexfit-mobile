@@ -1,5 +1,5 @@
-import '../../../../core/services/api_client.dart';
-import '../../../../core/services/local_storage.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/network/local_storage.dart';
 import '../models/credit_package_model.dart';
 
 class CreditRepository {
@@ -9,8 +9,8 @@ class CreditRepository {
   final ApiClient _apiClient;
 
   Future<List<CreditPackageModel>> getPackages() async {
-    final response = await _apiClient.get('/credit-packages');
-    return (response as List)
+    final response = await _getPackagesResponse();
+    return _readList(response)
         .map(
           (item) => CreditPackageModel.fromJson(
             Map<String, dynamic>.from(item as Map),
@@ -18,6 +18,14 @@ class CreditRepository {
         )
         .where((package) => package.isActive)
         .toList();
+  }
+
+  Future<dynamic> _getPackagesResponse() async {
+    try {
+      return await _apiClient.get('/payment/packages');
+    } on ApiException {
+      return _apiClient.get('/credit-packages');
+    }
   }
 
   Future<void> buyPackage(String packageId) async {
@@ -37,4 +45,23 @@ class CreditRepository {
     final response = await _apiClient.get('/payment/my-credit');
     return UserCreditModel.fromJson(Map<String, dynamic>.from(response as Map));
   }
+}
+
+List<dynamic> _readList(dynamic response) {
+  if (response is List) {
+    return response;
+  }
+  if (response is Map) {
+    final data =
+        response['data'] ??
+        response['Data'] ??
+        response['items'] ??
+        response['Items'] ??
+        response['packages'] ??
+        response['Packages'];
+    if (data is List) {
+      return data;
+    }
+  }
+  return const [];
 }

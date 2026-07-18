@@ -1,60 +1,57 @@
-import 'package:flutter/material.dart';
-
+import 'package:flutter/foundation.dart';
 import '../../data/models/credit_package_model.dart';
+import '../../data/models/payment_model.dart';
 import '../../data/repositories/credit_repository.dart';
+import '../../data/repositories/payment_repository.dart';
 
 class MembershipProvider extends ChangeNotifier {
-  MembershipProvider(this._repository);
+  MembershipProvider({
+    CreditRepository? creditRepository,
+    PaymentRepository? paymentRepository,
+  }) : _creditRepository = creditRepository ?? CreditRepository(),
+       _paymentRepository = paymentRepository ?? PaymentRepository();
 
-  final CreditRepository _repository;
+  final CreditRepository _creditRepository;
+  final PaymentRepository _paymentRepository;
 
-  bool isLoading = false;
-  bool isBuying = false;
-  String? buyingPackageId;
-  String? error;
+  bool _isLoading = false;
+  bool get isLoading => _isLoading;
 
-  List<CreditPackageModel> packages = [];
-  UserCreditModel? credit;
+  String? _error;
+  String? get error => _error;
 
-  Future<void> loadData() async {
-    isLoading = true;
-    error = null;
+  List<CreditPackageModel> _packages = [];
+  List<CreditPackageModel> get packages => _packages;
+
+  UserCreditModel? _currentCredit;
+  UserCreditModel? get currentCredit => _currentCredit;
+
+  Future<void> loadPackages() async {
+    _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
-      credit = await _repository.getMyCredit();
-      packages = await _repository.getPackages();
-    } catch (e) {
-      error = e.toString();
-    }
+      final futures = await Future.wait([
+        _creditRepository.getMyCredit(),
+        _creditRepository.getPackages(),
+      ]);
 
-    isLoading = false;
-    notifyListeners();
+      _currentCredit = futures[0] as UserCreditModel;
+      _packages = futures[1] as List<CreditPackageModel>;
+    } catch (e) {
+      _error = 'Không thể tải danh sách gói. Vui lòng thử lại sau.';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
-  Future<bool> buyPackage(String packageId) async {
-    isBuying = true;
-    buyingPackageId = packageId;
-    error = null;
-    notifyListeners();
-
+  Future<PaymentCreateResult?> createPayment(String packageId) async {
     try {
-      await _repository.buyPackage(packageId);
-      credit = await _repository.getMyCredit();
-
-      isBuying = false;
-      buyingPackageId = null;
-      notifyListeners();
-
-      return true;
+      return _paymentRepository.createPayment(packageId: packageId);
     } catch (e) {
-      error = e.toString();
-
-      isBuying = false;
-      buyingPackageId = null;
-      notifyListeners();
-
-      return false;
+      return null;
     }
   }
 }

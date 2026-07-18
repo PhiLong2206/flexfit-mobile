@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../booking/presentation/pages/gym_detail_page.dart';
+import '../../../booking/presentation/screens/gym_detail_page.dart';
 import '../../../catalog/data/repositories/catalog_repository.dart';
 import '../../../catalog/domain/entities/gym.dart';
-import '../../../gym/presentation/pages/explore_page.dart';
+import '../../../gym/presentation/screens/explore_page.dart';
 import 'gym_card.dart';
 
 class FeaturedGymSection extends StatefulWidget {
@@ -27,7 +27,9 @@ class _FeaturedGymSectionState extends State<FeaturedGymSection> {
   }
 
   void _reload() {
-    setState(() => _future = _repository.getGyms());
+    setState(() {
+      _future = _repository.getGyms();
+    });
   }
 
   @override

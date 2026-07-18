@@ -7,10 +7,12 @@ class AuthSocialButton extends StatelessWidget {
     super.key,
     required this.label,
     required this.onPressed,
+    this.isLoading = false,
   });
 
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +20,7 @@ class AuthSocialButton extends StatelessWidget {
       width: double.infinity,
       height: 54,
       child: OutlinedButton(
-        onPressed: onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: AuthTheme.text,
           side: const BorderSide(color: AuthTheme.border),
@@ -28,7 +30,13 @@ class AuthSocialButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
           ),
         ),
-        child: Row(
+        child: isLoading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.4),
+              )
+            : Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(

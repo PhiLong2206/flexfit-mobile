@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../notification/presentation/widgets/notification_bell_button.dart';
+import '../../../ai/presentation/widgets/ai_coach_popup.dart';
+
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key});
 
@@ -48,10 +51,14 @@ class HomeHeader extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          _HeaderIconButton(
-            icon: Icons.notifications_none_rounded,
-            onTap: () {},
+          IconButton(
+            icon: const Icon(Icons.smart_toy_rounded, color: Color(0xFFFF6B16)),
+            onPressed: () {
+              AiCoachPopup.show(context);
+            },
           ),
+          const SizedBox(width: 4),
+          const NotificationBellButton(),
           const SizedBox(width: 10),
           Container(
             height: 42,
@@ -72,33 +79,6 @@ class HomeHeader extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({required this.icon, required this.onTap});
-
-  static const Color _cardColor = Color(0xFF111827);
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        height: 42,
-        width: 42,
-        decoration: BoxDecoration(
-          color: _cardColor,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        ),
-        child: Icon(icon, color: Colors.white, size: 22),
       ),
     );
   }

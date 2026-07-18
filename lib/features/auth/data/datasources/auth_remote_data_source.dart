@@ -1,4 +1,6 @@
-import '../../../../core/services/api_client.dart';
+import 'package:flutter/foundation.dart';
+
+import '../../../../core/network/api_client.dart';
 import '../models/auth_session_model.dart';
 
 class AuthRemoteDataSource {
@@ -18,6 +20,25 @@ class AuthRemoteDataSource {
     return AuthSessionModel.fromJson(
       Map<String, dynamic>.from(response as Map),
     );
+  }
+
+  Future<AuthSessionModel> googleLogin({required String idToken}) async {
+    try {
+      final response = await _apiClient.post(
+        '/Auth/google-login',
+        body: {'idToken': idToken},
+      );
+      return AuthSessionModel.fromJson(
+        Map<String, dynamic>.from(response as Map),
+      );
+    } catch (error) {
+      if (error is ApiException && error.body?.isNotEmpty == true) {
+        debugPrint('Backend Google login failed: ${error.body}');
+      } else {
+        debugPrint('Backend Google login failed: $error');
+      }
+      rethrow;
+    }
   }
 
   Future<void> register({
@@ -52,6 +73,16 @@ class AuthRemoteDataSource {
     await _apiClient.post(
       '/Auth/resend-otp',
       body: {'email': email, 'reason': 'VERIFY_EMAIL'},
+    );
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _apiClient.put(
+      '/Auth/change-password',
+      body: {'currentPassword': currentPassword, 'newPassword': newPassword},
     );
   }
 }

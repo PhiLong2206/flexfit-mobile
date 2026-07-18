@@ -8,6 +8,7 @@ class GymCard extends StatelessWidget {
     required this.rating,
     required this.credits,
     this.onTap,
+    this.onBookTap,
     super.key,
   });
 
@@ -20,6 +21,7 @@ class GymCard extends StatelessWidget {
   final double rating;
   final int credits;
   final VoidCallback? onTap;
+  final VoidCallback? onBookTap;
 
   @override
   Widget build(BuildContext context) {
@@ -130,19 +132,42 @@ class GymCard extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
-                        Container(
-                          height: 30,
-                          width: 30,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.08),
-                            shape: BoxShape.circle,
+                        if (onBookTap == null)
+                          Container(
+                            height: 30,
+                            width: 30,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Colors.white,
+                              size: 17,
+                            ),
+                          )
+                        else
+                          SizedBox(
+                            height: 34,
+                            child: FilledButton(
+                              onPressed: onBookTap,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: _primaryOrange,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text('Đặt lịch'),
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.arrow_forward_rounded,
-                            color: Colors.white,
-                            size: 17,
-                          ),
-                        ),
                       ],
                     ),
                   ],
