@@ -67,7 +67,7 @@ class BookingNotifier extends ChangeNotifier {
     final index = _bookings.indexWhere((b) => b.id == bookingId);
     if (index != -1) {
       final updatedList = List<BookingModel>.from(_bookings);
-      updatedList[index] = updatedList[index].copyWith(isReviewed: true);
+      updatedList[index] = updatedList[index].copyWith(hasReview: true);
       _bookings = updatedList;
       notifyListeners();
     }

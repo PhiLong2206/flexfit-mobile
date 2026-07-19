@@ -417,6 +417,7 @@ class BookingCard extends StatelessWidget {
                       ),
                     ),
                   ],
+                ],
               ),
             ),
           ],

@@ -30,6 +30,8 @@ class _ProfilePageState extends State<ProfilePage> {
   final _weightController = TextEditingController();
   final _goalController = TextEditingController();
   final _bioController = TextEditingController();
+  final _targetWeightController = TextEditingController();
+  final _workoutSessionsController = TextEditingController();
 
   late Future<MemberProfileModel> _future;
   MemberProfileModel? _profile;
@@ -52,6 +54,8 @@ class _ProfilePageState extends State<ProfilePage> {
     _weightController.dispose();
     _goalController.dispose();
     _bioController.dispose();
+    _targetWeightController.dispose();
+    _workoutSessionsController.dispose();
     super.dispose();
   }
 
@@ -75,6 +79,8 @@ class _ProfilePageState extends State<ProfilePage> {
     _weightController.text = profile.weightKg?.toString() ?? '';
     _goalController.text = profile.fitnessGoal ?? '';
     _bioController.text = profile.bio ?? '';
+    _targetWeightController.text = profile.targetWeight?.toString() ?? '';
+    _workoutSessionsController.text = profile.workoutSessionsPerWeek?.toString() ?? '';
   }
 
   void _reload() {
@@ -98,6 +104,8 @@ class _ProfilePageState extends State<ProfilePage> {
         weightKg: _parseNumber(_weightController.text),
         fitnessGoal: _goalController.text.trim(),
         bio: _bioController.text.trim(),
+        targetWeight: _parseNumber(_targetWeightController.text),
+        workoutSessionsPerWeek: _parseInt(_workoutSessionsController.text),
       );
 
       final saved = await _repository.updateMe(updated);
@@ -302,6 +310,8 @@ class _ProfilePageState extends State<ProfilePage> {
                                     weightController: _weightController,
                                     goalController: _goalController,
                                     bioController: _bioController,
+                                    targetWeightController: _targetWeightController,
+                                    workoutSessionsController: _workoutSessionsController,
                                     email: profile.email,
                                     isSaving: _isSaving,
                                     onSave: _save,
@@ -335,6 +345,8 @@ class _ProfilePageState extends State<ProfilePage> {
                                   weightController: _weightController,
                                   goalController: _goalController,
                                   bioController: _bioController,
+                                  targetWeightController: _targetWeightController,
+                                  workoutSessionsController: _workoutSessionsController,
                                   email: profile.email,
                                   isSaving: _isSaving,
                                   onSave: _save,
@@ -620,6 +632,8 @@ class _ContentCard extends StatelessWidget {
     required this.weightController,
     required this.goalController,
     required this.bioController,
+    required this.targetWeightController,
+    required this.workoutSessionsController,
     required this.email,
     required this.isSaving,
     required this.onSave,
@@ -633,6 +647,8 @@ class _ContentCard extends StatelessWidget {
   final TextEditingController weightController;
   final TextEditingController goalController;
   final TextEditingController bioController;
+  final TextEditingController targetWeightController;
+  final TextEditingController workoutSessionsController;
   final String email;
   final bool isSaving;
   final VoidCallback onSave;
@@ -657,6 +673,8 @@ class _ContentCard extends StatelessWidget {
                   weightController: weightController,
                   goalController: goalController,
                   bioController: bioController,
+                  targetWeightController: targetWeightController,
+                  workoutSessionsController: workoutSessionsController,
                 ),
         ),
         const SizedBox(height: 18),
@@ -730,6 +748,8 @@ class _HealthGoalForm extends StatelessWidget {
     required this.weightController,
     required this.goalController,
     required this.bioController,
+    required this.targetWeightController,
+    required this.workoutSessionsController,
   });
 
   final TextEditingController genderController;
@@ -737,6 +757,8 @@ class _HealthGoalForm extends StatelessWidget {
   final TextEditingController weightController;
   final TextEditingController goalController;
   final TextEditingController bioController;
+  final TextEditingController targetWeightController;
+  final TextEditingController workoutSessionsController;
 
   @override
   Widget build(BuildContext context) {
@@ -762,6 +784,25 @@ class _HealthGoalForm extends StatelessWidget {
               child: _Field(
                 controller: weightController,
                 label: 'Cân nặng (kg)',
+                keyboardType: TextInputType.number,
+              ),
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: _Field(
+                controller: targetWeightController,
+                label: 'Cân nặng mục tiêu (kg)',
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _Field(
+                controller: workoutSessionsController,
+                label: 'Số buổi tập/tuần',
                 keyboardType: TextInputType.number,
               ),
             ),
@@ -1021,6 +1062,12 @@ double? _parseHeightCm(String value) {
   }
 
   return number;
+}
+
+int? _parseInt(String value) {
+  final clean = value.trim();
+  if (clean.isEmpty) return null;
+  return int.tryParse(clean);
 }
 
 // ignore: unused_element

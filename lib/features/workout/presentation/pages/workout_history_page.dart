@@ -205,8 +205,8 @@ class _WorkoutHistoryCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    _formatDate(workout.startTime),
+                   Text(
+                    '${_formatDate(workout.startTime)} ${_formatTime(workout.startTime)}',
                     style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 12,
@@ -266,7 +266,7 @@ class _WorkoutHistoryCard extends StatelessWidget {
                         child: Text(
                           workout.notes,
                           style: const TextStyle(
-                            color: Colors.white80,
+                            color: Color(0xCCFFFFFF),
                             fontSize: 13,
                             height: 1.3,
                             fontWeight: FontWeight.w500,

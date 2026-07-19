@@ -12,7 +12,6 @@ class MemberProfileModel {
     this.activityLevel,
     this.preferredWorkoutTime,
     this.bio,
-    this.avatarUrl,
     this.targetWeight,
     this.workoutSessionsPerWeek,
   });
@@ -29,7 +28,6 @@ class MemberProfileModel {
   final String? activityLevel;
   final String? preferredWorkoutTime;
   final String? bio;
-  final String? avatarUrl;
   final double? targetWeight;
   final int? workoutSessionsPerWeek;
 
@@ -40,7 +38,6 @@ class MemberProfileModel {
       phoneNumber: _read(json, 'phoneNumber')?.toString(),
       dateOfBirth: _read(json, 'dateOfBirth')?.toString(),
       gender: _read(json, 'gender')?.toString(),
-      avatarUrl: _read(json, 'avatarUrl')?.toString(),
       heightCm: double.tryParse(_read(json, 'heightCm')?.toString() ?? ''),
       weightKg: double.tryParse(_read(json, 'weightKg')?.toString() ?? ''),
       fitnessGoal: _read(json, 'fitnessGoal')?.toString(),
@@ -92,7 +89,6 @@ class MemberProfileModel {
     String? activityLevel,
     String? preferredWorkoutTime,
     String? bio,
-    String? avatarUrl,
     double? targetWeight,
     int? workoutSessionsPerWeek,
   }) {
@@ -109,7 +105,6 @@ class MemberProfileModel {
       activityLevel: activityLevel ?? this.activityLevel,
       preferredWorkoutTime: preferredWorkoutTime ?? this.preferredWorkoutTime,
       bio: bio ?? this.bio,
-      avatarUrl: avatarUrl ?? this.avatarUrl,
       targetWeight: targetWeight ?? this.targetWeight,
       workoutSessionsPerWeek: workoutSessionsPerWeek ?? this.workoutSessionsPerWeek,
     );
