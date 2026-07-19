@@ -1,13 +1,12 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/services/local_storage.dart';
+import '../../../../core/network/local_storage.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_data_source.dart';
 import '../services/google_auth_service.dart';
 import '../services/google_login_exception.dart';
-
 
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
@@ -28,8 +27,15 @@ class AuthRepositoryImpl implements AuthRepository {
       email: email,
       password: password,
     );
-    await LocalStorage.saveToken(session.token);
-    return session;
+    final roles = await LocalStorage.saveToken(
+      session.token,
+      roles: session.roles,
+    );
+    return AuthSession(
+      token: session.token,
+      expiresAt: session.expiresAt,
+      roles: roles,
+    );
   }
 
   @override
@@ -47,18 +53,26 @@ class AuthRepositoryImpl implements AuthRepository {
     final idToken = kIsWeb
         ? await _googleAuthService.signInAndGetIdToken(clientId: clientId)
         : await _googleAuthService.signInAndGetIdToken(
-      clientId: AppConstants.googleClientId,
-    );
+            clientId: AppConstants.googleClientId,
+          );
     debugPrint('Google token received');
     return googleLoginWithIdToken(idToken);
   }
 
+  @override
   Future<AuthSession> googleLoginWithIdToken(String idToken) async {
     debugPrint('Sending Google token to backend');
     final session = await _remoteDataSource.googleLogin(idToken: idToken);
-    await LocalStorage.saveToken(session.token);
+    final roles = await LocalStorage.saveToken(
+      session.token,
+      roles: session.roles,
+    );
     debugPrint('Backend login success');
-    return session;
+    return AuthSession(
+      token: session.token,
+      expiresAt: session.expiresAt,
+      roles: roles,
+    );
   }
 
   @override
@@ -84,5 +98,16 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> resendOtp({required String email}) {
     return _remoteDataSource.resendOtp(email: email);
+  }
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) {
+    return _remoteDataSource.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
   }
 }

@@ -1,4 +1,4 @@
-import '../../../../core/services/api_client.dart';
+import '../../../../core/network/api_client.dart';
 import '../models/review_model.dart';
 
 class ReviewRepository {

@@ -1,0 +1,199 @@
+import 'package:get_it/get_it.dart';
+
+import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/auth/domain/usecases/google_login_usecase.dart';
+import '../../features/auth/domain/usecases/google_login_with_id_token_usecase.dart';
+import '../../features/auth/domain/usecases/login_usecase.dart';
+import '../../features/auth/domain/usecases/register_usecase.dart';
+import '../../features/auth/domain/usecases/verify_email_usecase.dart';
+import '../../features/auth/domain/usecases/resend_otp_usecase.dart';
+import '../../features/auth/domain/usecases/change_password_usecase.dart';
+import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/data/repositories/auth_repository_impl.dart';
+import '../../features/auth/data/datasources/auth_remote_data_source.dart';
+import '../../features/ai/domain/repositories/ai_repository.dart';
+import '../../features/ai/data/repositories/ai_repository_impl.dart';
+import '../../features/ai/data/datasources/ai_remote_data_source.dart';
+import '../../features/ai/domain/usecases/chat_with_ai_usecase.dart';
+import '../../features/ai/domain/usecases/get_workout_suggestion_usecase.dart';
+import '../../features/ai/domain/usecases/get_class_suggestion_usecase.dart';
+import '../../features/admin/data/datasources/admin_remote_data_source.dart';
+import '../../features/admin/data/repositories/admin_repository_impl.dart';
+import '../../features/admin/domain/repositories/admin_repository.dart';
+import '../../features/admin/presentation/providers/admin_dashboard_provider.dart';
+import '../../features/admin/presentation/providers/admin_gyms_provider.dart';
+import '../../features/admin/presentation/providers/admin_revenue_provider.dart';
+import '../../features/admin/presentation/providers/admin_settings_provider.dart';
+import '../../features/admin/presentation/providers/admin_users_provider.dart';
+import '../../features/admin/presentation/providers/admin_utilities_provider.dart';
+import '../../features/booking/domain/usecases/get_my_bookings_usecase.dart';
+import '../../features/booking/data/repositories/booking_repository.dart';
+import '../../features/staff/data/datasources/staff_remote_data_source.dart';
+import '../../features/staff/data/repositories/staff_repository_impl.dart';
+import '../../features/staff/domain/repositories/staff_repository.dart';
+import '../../features/staff/presentation/providers/staff_dashboard_provider.dart';
+import '../../features/staff/presentation/providers/staff_check_in_provider.dart';
+import '../../features/staff/presentation/providers/staff_schedule_provider.dart';
+import '../../features/staff/presentation/providers/staff_customers_provider.dart';
+import '../../features/staff/presentation/providers/staff_reviews_provider.dart';
+
+import '../../features/profile/domain/repositories/profile_repository.dart';
+import '../../features/profile/data/repositories/profile_repository_impl.dart';
+import '../../features/profile/data/datasources/profile_remote_data_source.dart';
+import '../../features/profile/domain/usecases/get_profile_usecase.dart';
+import '../../features/profile/domain/usecases/update_profile_usecase.dart';
+import '../../features/profile/presentation/providers/profile_provider.dart';
+
+import '../../features/partner/data/datasources/partner_remote_data_source.dart';
+import '../../features/partner/data/repositories/partner_repository_impl.dart';
+import '../../features/partner/domain/repositories/partner_repository.dart';
+import '../../features/partner/domain/usecases/create_class_usecase.dart';
+import '../../features/partner/domain/usecases/delete_class_usecase.dart';
+import '../../features/partner/domain/usecases/get_partner_branches_usecase.dart';
+import '../../features/partner/domain/usecases/get_partner_classes_usecase.dart';
+import '../../features/partner/domain/usecases/get_partner_dashboard_stats_usecase.dart';
+import '../../features/partner/domain/usecases/get_partner_gyms_usecase.dart';
+import '../../features/partner/domain/usecases/get_partner_customers_usecase.dart';
+import '../../features/partner/domain/usecases/get_partner_reviews_usecase.dart';
+import '../../features/partner/presentation/providers/partner_provider.dart';
+
+import '../network/api_client.dart';
+
+final sl = GetIt.instance;
+
+Future<void> init() async {
+  // Core
+  sl.registerLazySingleton(() => ApiClient());
+
+  // Features - Auth
+  sl.registerFactory(
+    () => AuthProvider(googleLoginUseCase: sl(), changePasswordUseCase: sl()),
+  );
+  sl.registerLazySingleton(() => GoogleLoginWithIdTokenUseCase(sl()));
+  sl.registerLazySingleton(() => GoogleLoginUseCase(sl()));
+  sl.registerLazySingleton(() => LoginUseCase(sl()));
+  sl.registerLazySingleton(() => RegisterUseCase(sl()));
+  sl.registerLazySingleton(() => VerifyEmailUseCase(sl()));
+  sl.registerLazySingleton(() => ResendOtpUseCase(sl()));
+  sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => AuthRemoteDataSource(apiClient: sl()));
+
+  // Features - AI
+  sl.registerLazySingleton(() => ChatWithAiUseCase(sl()));
+  sl.registerLazySingleton(() => GetWorkoutSuggestionUseCase(sl()));
+  sl.registerLazySingleton(() => GetClassSuggestionUseCase(sl()));
+  sl.registerLazySingleton<AiRepository>(
+    () => AiRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => AiRemoteDataSource(apiClient: sl()));
+
+  // Features - Admin
+  sl.registerLazySingleton<AdminRemoteDataSource>(
+    () => AdminRemoteDataSourceImpl(apiClient: sl<ApiClient>()),
+  );
+  sl.registerLazySingleton<AdminRepository>(
+    () => AdminRepositoryImpl(remoteDataSource: sl<AdminRemoteDataSource>()),
+  );
+  sl.registerFactory<AdminDashboardProvider>(
+    () => AdminDashboardProvider(repository: sl<AdminRepository>()),
+  );
+  sl.registerFactory<AdminUsersProvider>(
+    () => AdminUsersProvider(repository: sl<AdminRepository>()),
+  );
+  sl.registerFactory<AdminGymsProvider>(
+    () => AdminGymsProvider(repository: sl<AdminRepository>()),
+  );
+  sl.registerFactory<AdminUtilitiesProvider>(
+    () => AdminUtilitiesProvider(repository: sl<AdminRepository>()),
+  );
+  sl.registerFactory<AdminRevenueProvider>(
+    () => AdminRevenueProvider(repository: sl<AdminRepository>()),
+  );
+  sl.registerFactory<AdminSettingsProvider>(
+    () => AdminSettingsProvider(repository: sl<AdminRepository>()),
+  );
+
+  // Features - Booking
+  sl.registerLazySingleton(() => BookingRepository(apiClient: sl()));
+  sl.registerLazySingleton(() => GetMyBookingsUseCase(sl()));
+
+  // Features - Catalog
+
+  // Features - Gym
+
+  // Features - Home
+
+  // Features - Staff
+  sl.registerLazySingleton<StaffRemoteDataSource>(
+    () => StaffRemoteDataSourceImpl(apiClient: sl<ApiClient>()),
+  );
+  sl.registerLazySingleton<StaffRepository>(
+    () => StaffRepositoryImpl(remoteDataSource: sl<StaffRemoteDataSource>()),
+  );
+  sl.registerFactory<StaffDashboardProvider>(
+    () => StaffDashboardProvider(repository: sl<StaffRepository>()),
+  );
+  sl.registerFactory<StaffCheckInProvider>(
+    () => StaffCheckInProvider(repository: sl<StaffRepository>()),
+  );
+  sl.registerFactory<StaffScheduleProvider>(
+    () => StaffScheduleProvider(repository: sl<StaffRepository>()),
+  );
+  sl.registerFactory<StaffCustomersProvider>(
+    () => StaffCustomersProvider(repository: sl<StaffRepository>()),
+  );
+  sl.registerFactory<StaffReviewsProvider>(
+    () => StaffReviewsProvider(repository: sl<StaffRepository>()),
+  );
+
+  // Features - Membership
+
+  // Features - Notification
+
+  // Features - Profile
+  sl.registerFactory(
+    () => ProfileProvider(getProfileUseCase: sl(), updateProfileUseCase: sl()),
+  );
+  sl.registerLazySingleton(() => GetProfileUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
+  sl.registerLazySingleton<ProfileRepository>(
+    () => ProfileRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton<ProfileRemoteDataSource>(
+    () => ProfileRemoteDataSourceImpl(apiClient: sl()),
+  );
+
+  // Features - Partner
+  sl.registerFactory(
+    () => PartnerProvider(
+      getPartnerDashboardStatsUseCase: sl(),
+      getPartnerBranchesUseCase: sl(),
+      getPartnerClassesUseCase: sl(),
+      createClassUseCase: sl(),
+      deleteClassUseCase: sl(),
+      getPartnerGymsUseCase: sl(),
+      getPartnerCustomersUseCase: sl(),
+      getPartnerReviewsUseCase: sl(),
+      partnerRepository: sl(),
+    ),
+  );
+  sl.registerLazySingleton(() => GetPartnerDashboardStatsUseCase(sl()));
+  sl.registerLazySingleton(() => GetPartnerBranchesUseCase(sl()));
+  sl.registerLazySingleton(() => GetPartnerClassesUseCase(sl()));
+  sl.registerLazySingleton(() => CreateClassUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteClassUseCase(sl()));
+  sl.registerLazySingleton(() => GetPartnerGymsUseCase(sl()));
+  sl.registerLazySingleton(() => GetPartnerCustomersUseCase(sl()));
+  sl.registerLazySingleton(() => GetPartnerReviewsUseCase(sl()));
+  sl.registerLazySingleton<PartnerRepository>(
+    () => PartnerRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton<PartnerRemoteDataSource>(
+    () => PartnerRemoteDataSourceImpl(apiClient: sl()),
+  );
+
+  // Features - Explore
+}

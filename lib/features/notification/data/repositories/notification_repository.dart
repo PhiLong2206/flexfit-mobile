@@ -1,4 +1,4 @@
-import '../../../../core/services/api_client.dart';
+import '../../../../core/network/api_client.dart';
 import '../models/notification_model.dart';
 
 class NotificationRepository {

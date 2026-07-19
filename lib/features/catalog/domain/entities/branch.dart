@@ -11,6 +11,7 @@ class Branch {
     this.thumbnailUrl,
     required this.creditCost,
     required this.isActive,
+    this.staffs,
   });
 
   final String id;
@@ -24,6 +25,7 @@ class Branch {
   final String? thumbnailUrl;
   final int creditCost;
   final bool isActive;
+  final List<dynamic>? staffs;
 
   String get displayAddress {
     final parts = [

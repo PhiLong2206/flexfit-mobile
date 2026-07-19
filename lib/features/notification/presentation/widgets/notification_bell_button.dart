@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../pages/notification_page.dart';
+import '../screens/notification_page.dart';
 import '../providers/notification_provider.dart';
 
 class NotificationBellButton extends StatefulWidget {

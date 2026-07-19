@@ -1,4 +1,4 @@
-import '../../../../core/services/api_client.dart';
+import '../../../../core/network/api_client.dart';
 import '../models/workout_history_model.dart';
 import '../models/workout_statistics_model.dart';
 

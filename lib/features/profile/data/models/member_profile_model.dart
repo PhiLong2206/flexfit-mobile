@@ -1,3 +1,5 @@
+import '../../domain/entities/profile.dart';
+
 class MemberProfileModel {
   const MemberProfileModel({
     required this.fullName,
@@ -38,13 +40,17 @@ class MemberProfileModel {
       phoneNumber: _read(json, 'phoneNumber')?.toString(),
       dateOfBirth: _read(json, 'dateOfBirth')?.toString(),
       gender: _read(json, 'gender')?.toString(),
+      avatarUrl: (_read(json, 'avatarUrl') ??
+              _read(json, 'avatar') ??
+              _read(json, 'avatarPath') ??
+              _read(json, 'profilePicture'))
+          ?.toString(),
       heightCm: double.tryParse(_read(json, 'heightCm')?.toString() ?? ''),
       weightKg: double.tryParse(_read(json, 'weightKg')?.toString() ?? ''),
       fitnessGoal: _read(json, 'fitnessGoal')?.toString(),
       activityLevel: _read(json, 'activityLevel')?.toString(),
       preferredWorkoutTime: _read(json, 'preferredWorkoutTime')?.toString(),
       bio: _read(json, 'bio')?.toString(),
-      avatarUrl: _read(json, 'avatarUrl')?.toString() ?? _read(json, 'avatar')?.toString(),
       targetWeight: double.tryParse(_read(json, 'targetWeight')?.toString() ?? ''),
       workoutSessionsPerWeek: int.tryParse(_read(json, 'workoutSessionsPerWeek')?.toString() ?? ''),
     );
@@ -107,6 +113,44 @@ class MemberProfileModel {
       bio: bio ?? this.bio,
       targetWeight: targetWeight ?? this.targetWeight,
       workoutSessionsPerWeek: workoutSessionsPerWeek ?? this.workoutSessionsPerWeek,
+    );
+  }
+
+  Profile toEntity() {
+    return Profile(
+      fullName: fullName,
+      email: email,
+      phoneNumber: phoneNumber,
+      dateOfBirth: dateOfBirth,
+      gender: gender,
+      avatarUrl: avatarUrl,
+      heightCm: heightCm,
+      weightKg: weightKg,
+      fitnessGoal: fitnessGoal,
+      activityLevel: activityLevel,
+      preferredWorkoutTime: preferredWorkoutTime,
+      bio: bio,
+      targetWeight: targetWeight,
+      workoutSessionsPerWeek: workoutSessionsPerWeek,
+    );
+  }
+
+  factory MemberProfileModel.fromEntity(Profile profile) {
+    return MemberProfileModel(
+      fullName: profile.fullName,
+      email: profile.email,
+      phoneNumber: profile.phoneNumber,
+      dateOfBirth: profile.dateOfBirth,
+      gender: profile.gender,
+      avatarUrl: profile.avatarUrl,
+      heightCm: profile.heightCm,
+      weightKg: profile.weightKg,
+      fitnessGoal: profile.fitnessGoal,
+      activityLevel: profile.activityLevel,
+      preferredWorkoutTime: profile.preferredWorkoutTime,
+      bio: profile.bio,
+      targetWeight: profile.targetWeight,
+      workoutSessionsPerWeek: profile.workoutSessionsPerWeek,
     );
   }
 }

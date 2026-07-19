@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../profile/data/models/booking_item.dart';
 import '../../data/models/booking_model.dart';
-import '../pages/booking_detail_page.dart';
+import '../screens/booking_detail_page.dart';
 import '../providers/booking_provider.dart';
 import 'review_bottom_sheet.dart';
 
@@ -60,6 +60,9 @@ class BookingCard extends StatelessWidget {
   }
 
   String get _imageUrl {
+    if (booking.thumbnailUrl != null && booking.thumbnailUrl!.isNotEmpty) {
+      return booking.thumbnailUrl!;
+    }
     // Choose image based on type or title
     if (booking.type == BookingType.classBooking) {
       return 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438'; // Class studio image

@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/constants/app_constants.dart';
-import 'core/services/payment_deep_link_service.dart';
-import 'features/auth/presentation/pages/auth_gate_page.dart';
+import 'core/network/payment_deep_link_service.dart';
+import 'core/di/injection_container.dart';
+import 'features/ai/presentation/providers/ai_coach_provider.dart';
+import 'features/auth/presentation/screens/auth_gate_page.dart';
 import 'features/membership/data/credit_refresh_notifier.dart';
-import 'features/membership/presentation/pages/membership_page.dart';
-import 'features/profile/data/profile_notifier.dart';
+import 'features/membership/presentation/providers/membership_provider.dart';
+import 'features/membership/presentation/screens/membership_page.dart';
 import 'features/notification/presentation/providers/notification_provider.dart';
 import 'features/workout/data/workout_notifier.dart';
 
@@ -72,8 +74,11 @@ class _FlexFitAppState extends State<FlexFitApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ProfileNotifier()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(
+          create: (_) => AiCoachProvider(sl(), workoutSuggestionUseCase: sl()),
+        ),
+        ChangeNotifierProvider(create: (_) => MembershipProvider()),
         ChangeNotifierProvider(create: (_) => WorkoutNotifier()),
       ],
       child: MaterialApp(

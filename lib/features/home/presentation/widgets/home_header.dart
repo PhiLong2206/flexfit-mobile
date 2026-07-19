@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../profile/data/profile_notifier.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../notification/presentation/widgets/notification_bell_button.dart';
+import '../../../ai/presentation/widgets/ai_coach_popup.dart';
 
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key});
@@ -52,6 +53,13 @@ class HomeHeader extends StatelessWidget {
             ),
           ),
           const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.smart_toy_rounded, color: Color(0xFFFF6B16)),
+            onPressed: () {
+              AiCoachPopup.show(context);
+            },
+          ),
+          const SizedBox(width: 4),
           const NotificationBellButton(),
           const SizedBox(width: 10),
           InkWell(

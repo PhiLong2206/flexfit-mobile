@@ -1,4 +1,5 @@
-import '../../../../core/services/api_client.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../partner/data/models/partner_review_model.dart';
 import '../models/booking_model.dart';
 import '../models/review_model.dart';
 
@@ -26,6 +27,27 @@ class ReviewRepository {
       },
     );
     return ReviewModel.fromJson(_readMap(response));
+  }
+
+  Future<List<PartnerReviewModel>> getReviewsForGym(String gymId) async {
+    try {
+      final response = await _apiClient.get('/Review/gym/$gymId');
+      final List<PartnerReviewModel> list = [];
+      dynamic items = response;
+      if (response is Map) {
+        items = response['data'] ?? response['Data'] ?? response['items'] ?? response['Items'] ?? response['result'] ?? response['Result'] ?? response;
+      }
+      if (items is List) {
+        for (final item in items) {
+          if (item is Map) {
+            list.add(PartnerReviewModel.fromJson(Map<String, dynamic>.from(item)));
+          }
+        }
+      }
+      return list;
+    } catch (_) {
+      return [];
+    }
   }
 }
 

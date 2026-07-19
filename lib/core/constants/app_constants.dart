@@ -8,39 +8,46 @@ class AppConstants {
   AppConstants._();
 
   // API
-  static const String webBaseUrl = 'http://localhost:5023/api';
+
+  static const String deployedBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://flexfit-api-2026-f7d2d4g6e0dncfa5.indonesiacentral-01.azurewebsites.net/api',
+  );
+
+  static const String webBaseUrl = deployedBaseUrl;
 
   // For real Android phone, replace 10.0.2.2 with PC LAN IP, e.g. http://192.168.x.x:5023
-  static const String androidEmulatorBaseUrl = 'http://10.0.2.2:5023/api';
+  static const String androidEmulatorBaseUrl = deployedBaseUrl;
 
   static String get baseUrl {
-    if (kIsWeb) {
-      return webBaseUrl;
-    }
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return androidEmulatorBaseUrl;
-    }
-    return webBaseUrl;
+  if (kIsWeb) {
+  return webBaseUrl;
+  }
+  if (defaultTargetPlatform == TargetPlatform.android) {
+  return androidEmulatorBaseUrl;
+  }
+  return webBaseUrl;
   }
 
   static const String _devGoogleClientId =
-      '474979397544-i1gal4qaq4ftbejhn1gb96gdbfgobt25.apps.googleusercontent.com';
+  '474979397544-i1gal4qaq4ftbejhn1gb96gdbfgobt25.apps.googleusercontent.com';
+
 
   static const String _configuredGoogleClientId = String.fromEnvironment(
-    'GOOGLE_CLIENT_ID',
-    defaultValue: _devGoogleClientId,
+  'GOOGLE_CLIENT_ID',
+  defaultValue: _devGoogleClientId,
   );
 
   static String get googleClientId {
-    final configured = _configuredGoogleClientId.trim();
-    return configured.isEmpty ? _devGoogleClientId : configured;
+  final configured = _configuredGoogleClientId.trim();
+  return configured.isEmpty ? _devGoogleClientId : configured;
   }
 
   static String get googleOAuthOrigin {
-    if (kDebugMode) {
-      return kGoogleLocalOrigin;
-    }
-    return Uri.base.origin;
+  if (kDebugMode) {
+  return kGoogleLocalOrigin;
+  }
+  return Uri.base.origin;
   }
 
   // Colors

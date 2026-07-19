@@ -17,6 +17,7 @@ class BookingModel {
     required this.type,
     required this.hasReview,
     this.reviewId,
+    this.thumbnailUrl,
   });
 
   final String id;
@@ -36,6 +37,7 @@ class BookingModel {
   final BookingType type;
   final bool hasReview;
   final String? reviewId;
+  final String? thumbnailUrl;
 
   bool get canReview {
     if (hasReview) {
@@ -65,6 +67,7 @@ class BookingModel {
     BookingType? type,
     bool? hasReview,
     String? reviewId,
+    String? thumbnailUrl,
   }) {
     return BookingModel(
       id: id ?? this.id,
@@ -84,6 +87,7 @@ class BookingModel {
       type: type ?? this.type,
       hasReview: hasReview ?? this.hasReview,
       reviewId: reviewId ?? this.reviewId,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
     );
   }
 
@@ -113,6 +117,7 @@ class BookingModel {
       type: BookingType.gym,
       hasReview: _readBool(json, 'hasReview'),
       reviewId: _readString(json, 'reviewId'),
+      thumbnailUrl: _readString(json, 'thumbnailUrl'),
     );
   }
 
@@ -142,6 +147,7 @@ class BookingModel {
       type: BookingType.classBooking,
       hasReview: _readBool(json, 'hasReview'),
       reviewId: _readString(json, 'reviewId'),
+      thumbnailUrl: _readString(json, 'thumbnailUrl'),
     );
   }
 }

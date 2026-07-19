@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../../../../core/services/api_client.dart';
+import '../../../../core/network/api_client.dart';
 import '../models/auth_session_model.dart';
 
 class AuthRemoteDataSource {
@@ -73,6 +73,16 @@ class AuthRemoteDataSource {
     await _apiClient.post(
       '/Auth/resend-otp',
       body: {'email': email, 'reason': 'VERIFY_EMAIL'},
+    );
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _apiClient.put(
+      '/Auth/change-password',
+      body: {'currentPassword': currentPassword, 'newPassword': newPassword},
     );
   }
 }
